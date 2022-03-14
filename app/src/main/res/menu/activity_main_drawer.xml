@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_nature"
+            android:title="Природа" />
+        <item
+            android:id="@+id/nav_animals"
+            android:title="Животные" />
+        <item
+            android:id="@+id/nav_arch"
+            android:title="Архитектура" />
+        <item
+            android:id="@+id/nav_religion"
+            android:title="Религия" />
+        <item
+            android:id="@+id/nav_star"
+            android:title="Люди" />
+    </group>
+
+
+
+</menu>

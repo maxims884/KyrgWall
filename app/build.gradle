@@ -1,0 +1,67 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    compileSdkVersion 30
+    buildToolsVersion '30.0.2'
+    defaultConfig {
+        applicationId "kg.black13.kyrgyzstanwallpaper"
+        minSdkVersion 19
+        targetSdkVersion 30
+        multiDexEnabled  true
+        versionCode 4
+        versionName "3.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures{
+        viewBinding true
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:30.0.2'
+    implementation 'com.android.support:multidex:1.0.3'
+    implementation 'com.android.support:design:30.0.2'
+    implementation 'com.android.support.constraint:constraint-layout:2.0.4'
+    implementation 'com.google.firebase:firebase-storage:20.0.0'
+    implementation 'com.google.firebase:firebase-auth:21.0.1'
+    implementation 'com.github.bumptech.glide:glide:4.12.0'
+    implementation 'com.github.MikeOrtiz:TouchImageView:1.4.1'
+    implementation 'jp.wasabeef:blurry:3.0.0'
+    implementation 'com.google.firebase:firebase-firestore:24.0.1'
+    implementation 'com.google.firebase:firebase-ads:20.5.0'
+    implementation 'androidx.fragment:fragment:1.4.1'
+    implementation 'com.android.support:swiperefreshlayout:30.0.2'
+    implementation 'com.android.support:support-compat:30.0.2'
+    implementation 'com.android.support:support-annotations:30.0.2'
+    implementation 'com.nambimobile.widgets:expandable-fab:1.2.1'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
+    implementation 'com.google.android.play:core:1.10.3'
+    def billing_version = "4.0.0"
+    implementation "com.android.billingclient:billing:4.0.0"
+    def volley_version = "1.2.0"
+    implementation "com.android.volley:volley:$volley_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:1.4.31"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2'
+
+}
+
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+

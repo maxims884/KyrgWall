@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Кыргызстан обои</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Настройки</string>
+    <string name="name">Кыргызстан</string>
+    <string name="banner_ad_unit_id">ca-app-pub-2230097402282612/8321752465</string>
+    <string name="banner_ad_unit_id_nav">ca-app-pub-2230097402282612/8209410979</string>
+    <string name="ad_for_grid">ca-app-pub-2230097402282612/9717223327</string>
+    <string name="ad_between_page">ca-app-pub-2230097402282612/4583659604</string>
+    <string name="fab_options">Установить на главный экран</string>
+    <string name="fab_options_lock">Установить на экран блокировки</string>
+    <string name="fab_options_home_lock">Установить везде</string>
+</resources>

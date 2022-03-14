@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "775817617603",
+    "firebase_url": "https://hd-wallpaper-b78a8.firebaseio.com",
+    "project_id": "hd-wallpaper-b78a8",
+    "storage_bucket": "hd-wallpaper-b78a8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775817617603:android:7856dfe69c8879af",
+        "android_client_info": {
+          "package_name": "kg.black13.kyrgyzstanwallpaper"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "775817617603-of873fit3vmmc1s443hf0o8n0c13ahof.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "kg.black13.kyrgyzstanwallpaper",
+            "certificate_hash": "6df34ea431bdf0aacde2b55a309dedc9a7f3559d"
+          }
+        },
+        {
+          "client_id": "775817617603-l2q8fqrjlvp9ofahenlvu6vla2mcdu65.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-8fxTKMfegVhVCl7aipiMuvxuAyyCk_c"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "775817617603-l2q8fqrjlvp9ofahenlvu6vla2mcdu65.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
