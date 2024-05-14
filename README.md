@@ -1,4 +1,5 @@
 This is an Android app made in Android Studio for finding home screen wallpapers.
+Google Firebase is used here
 
 Libraries:
 
