@@ -1,54 +1,62 @@
 package kg.black13.kyrgyzstanwallpaper
 
 import android.content.ContentValues
-import android.content.SharedPreferences
-import android.net.ConnectivityManager
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.widget.ProgressBar
+import android.widget.FrameLayout
+import android.widget.RelativeLayout
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.Purchase
-import com.google.android.gms.ads.*
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.material.navigation.NavigationView
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kg.black13.kyrgyzstanwallpaper.databinding.ActivityMainBinding
-import kotlinx.android.synthetic.main.app_bar_main.view.*
-import java.util.*
+import kg.black13.kyrgyzstanwallpaper.databinding.AppBarMainBinding
 
 class MainActivityKt: AppCompatActivity(),NavigationView.OnNavigationItemSelectedListener {
     private lateinit var binding: ActivityMainBinding
+//    private lateinit var bindingToolbar: AppBarMainBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
+//        bindingToolbar = AppBarMainBinding.inflate(layoutInflater)
+
         setContentView(binding.root)
         ManagerKt.getInstance()?.context = this
-        val toolbar = binding.root.toolbarView as Toolbar?
+
+        val toolbar = binding.includedAppBar.toolbarView.root as Toolbar?
+
         setSupportActionBar(toolbar)
+
         ManagerKt.getInstance()?.sp = getSharedPreferences("Ad", MODE_PRIVATE)
         ManagerKt.getInstance()?.db = FirebaseFirestore.getInstance()
         checkProducts()
         val drawer = binding.drawerLayout
+
         val toggle = ActionBarDrawerToggle(
             this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
+
         drawer.addDrawerListener(toggle)
         toggle.syncState()
+
         val navigationView = binding.navView
         navigationView.setNavigationItemSelectedListener(this)
         ManagerKt.getInstance()?.mNavigator = FragmentNavigatorKt(supportFragmentManager, FragmentAdapterKt(), R.id.content)
@@ -58,20 +66,78 @@ class MainActivityKt: AppCompatActivity(),NavigationView.OnNavigationItemSelecte
             )
         }
         ManagerKt.getInstance()?.mNavigator!!.onCreate(savedInstanceState)
-        ManagerKt.getInstance()?.mAdView = binding.root.adView
+        ManagerKt.getInstance()?.mAdView = binding.includedAppBar.adView
         ManagerKt.getInstance()?.mAdView1 = binding.adView1
         if (ManagerKt.getInstance()?.getPrefRemoveAd() == 0) {
             val adRequest = AdRequest.Builder().build()
             val adRequest1 = AdRequest.Builder().build()
             //AdRequest.Builder.addTestDevice(AdRequest.DEVICE_ID_EMULATOR).build();
             ManagerKt.getInstance()?.mAdView!!.loadAd(adRequest)
+
+            ManagerKt.getInstance()?.mAdView?.adListener = object : AdListener() {
+                override fun onAdLoaded() {
+                    super.onAdLoaded()
+                    val params = binding.includedAppBar.content.layoutParams as RelativeLayout.LayoutParams
+
+
+                    val marginInDp = 55 // Значение в dp
+                    val marginInPx = TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP, marginInDp.toFloat(),
+                        resources.displayMetrics
+                    ).toInt()
+
+                    params.setMargins(0, 0, 0, marginInPx)  // (левая, верхняя, правая, нижняя)
+                    binding.includedAppBar.content.layoutParams = params
+                    binding.includedAppBar.content.requestLayout()
+
+                    // Реклама успешно загружена
+                    Log.d("AdStatus", "Ad loaded successfully")
+                }
+
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    super.onAdFailedToLoad(adError)
+                    // Ошибка при загрузке рекламы
+                    Log.d("AdStatus", "Ad failed to load: ${adError.message}")
+                    val params = binding.includedAppBar.content.layoutParams as RelativeLayout.LayoutParams
+                    params.setMargins(0, 0, 0, 0)  // (левая, верхняя, правая, нижняя)
+                    binding.includedAppBar.content.layoutParams = params
+                    binding.includedAppBar.content.requestLayout()
+                }
+
+                override fun onAdOpened() {
+                    super.onAdOpened()
+                    // Реклама была открыта
+                    Log.d("AdStatus", "Ad opened")
+                }
+
+                override fun onAdClosed() {
+                    super.onAdClosed()
+                    // Реклама была закрыта
+                    Log.d("AdStatus", "Ad closed")
+                }
+
+                override fun onAdClicked() {
+                    super.onAdClicked()
+                    // Реклама была нажата
+                    Log.d("AdStatus", "Ad clicked")
+                }
+
+                override fun onAdImpression() {
+                    super.onAdImpression()
+                    val params = binding.includedAppBar.contentRelative.layoutParams as RelativeLayout.LayoutParams
+                    params.setMargins(0, 0, 0, 110)  // (левая, верхняя, правая, нижняя)
+                    binding.includedAppBar.contentRelative.layoutParams = params
+                    // Реклама отобразилась
+                    Log.d("AdStatus", "Ad impression")
+                }
+            }
+
             ManagerKt.getInstance()?.mAdView1!!.loadAd(adRequest1)
             loadAdPage()
             ManagerKt.getInstance()?.loader = AdLoader.Builder(this, getString(R.string.ad_for_grid))
                 .forNativeAd { nativeAd -> ManagerKt.getInstance()?.nativeAd = nativeAd }.build()
         }
         ManagerKt.getInstance()?.setCurrentTab(ManagerKt.getInstance()?.mNavigator!!.getCurrentPosition())
-//        getUrlFromStorage("relig");
     }
 
     override fun onBackPressed() {
@@ -241,7 +307,7 @@ class MainActivityKt: AppCompatActivity(),NavigationView.OnNavigationItemSelecte
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(
             this,
-            ManagerKt.getInstance()?.AD_UNIT_ID,
+            ManagerKt.getInstance()?.AD_UNIT_ID.toString(),
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(interstitialAd: InterstitialAd) {
