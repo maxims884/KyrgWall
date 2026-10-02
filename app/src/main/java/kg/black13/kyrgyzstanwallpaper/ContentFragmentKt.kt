@@ -1,23 +1,28 @@
 package kg.black13.kyrgyzstanwallpaper
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AbsListView
-import android.widget.GridView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 
-class ContentFragmentKt(type: String) : Fragment() {
-    private var isLoadAddItems = true
-    private var contentType = "nature"
-    init {
-        contentType = type
+class ContentFragmentKt : Fragment() {
+    companion object {
+        private const val ARG_TYPE = "type"
+        // Сколько рядов картинок между рекламными блоками
+        private const val ROWS_BETWEEN_ADS = 4
+
+        fun newInstance(type: String): ContentFragmentKt {
+            val fragment = ContentFragmentKt()
+            val args = Bundle()
+            args.putString(ARG_TYPE, type)
+            fragment.arguments = args
+            return fragment
+        }
     }
 
     override fun onCreateView(
@@ -26,56 +31,49 @@ class ContentFragmentKt(type: String) : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.grid_fragment, container, false)
-        val gridViewData = view.findViewById<GridView>(R.id.content_list)
-        ManagerKt.getInstance()?.pgsBar = view.findViewById(R.id.pBar)
-        ManagerKt.getInstance()?.pgsBar!!.visibility = View.VISIBLE
-        ManagerKt.getInstance()?.pullToRefresh = view.findViewById(R.id.pullToRefresh)
-        gridViewData.numColumns = 2
-        gridViewData.horizontalSpacing = 10
-        gridViewData.verticalSpacing = 10
-        gridViewData.isNestedScrollingEnabled = true
-        ManagerKt.getInstance()?.pullToRefresh!!.setOnRefreshListener(OnRefreshListener {
-            ManagerKt.getInstance()?.pullToRefresh!!.isRefreshing = true
-            if (!ManagerKt.getInstance()?.isOnline()!!) {
-                Toast.makeText(view.context, "Нет подключения к интернету", Toast.LENGTH_SHORT)
-                    .show()
-                ManagerKt.getInstance()?.pullToRefresh!!.isRefreshing = false
+        val contentType = requireArguments().getString(ARG_TYPE)!!
+        val manager = ManagerKt.getInstance()!!
+        val list = view.findViewById<RecyclerView>(R.id.content_list)
+        manager.pgsBar = view.findViewById(R.id.pBar)
+        manager.pgsBar!!.visibility = View.VISIBLE
+        manager.emptyView = view.findViewById(R.id.emptyText)
+        manager.pullToRefresh = view.findViewById(R.id.pullToRefresh)
+
+        // На планшетах три колонки
+        val columns = if (resources.configuration.smallestScreenWidthDp >= 600) 3 else 2
+        val adapter = PhotoAdapterKt(manager.paginationList, columns * ROWS_BETWEEN_ADS) { position ->
+            (activity as MainActivityKt).openGallery(position)
+        }
+        val layoutManager = GridLayoutManager(view.context, columns)
+        layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int): Int {
+                return if (adapter.isAd(position)) columns else 1
+            }
+        }
+        list.layoutManager = layoutManager
+        list.adapter = adapter
+        manager.arrayAdapter = adapter
+
+        manager.pullToRefresh!!.setOnRefreshListener(OnRefreshListener {
+            if (contentType != FavoritesKt.TYPE && !manager.isOnline()) {
+                Toast.makeText(view.context, R.string.no_internet, Toast.LENGTH_SHORT).show()
+                manager.pullToRefresh!!.isRefreshing = false
                 return@OnRefreshListener
             }
-            ManagerKt.getInstance()?.paginationList?.clear()
-            ManagerKt.getInstance()?.loadFirstItems(contentType)
+            manager.paginationList.clear()
+            manager.loadFirstItems(contentType)
         })
-        if (ContextCompat.checkSelfPermission(view.context, Manifest.permission.INTERNET)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            // Permission is not granted
-            return view
-        }
 
-        ManagerKt.getInstance()?.arrayAdapter =
-            PhotoAdapterKt( ManagerKt.getInstance()?.paginationList, ManagerKt.getInstance()?.pgsBar!!)
-        gridViewData.adapter =  ManagerKt.getInstance()?.arrayAdapter
-
-        ManagerKt.getInstance()?.loadFirstItems(contentType)
-        gridViewData.setOnScrollListener(object : AbsListView.OnScrollListener {
-            override fun onScroll(
-                view: AbsListView,
-                firstVisibleItem: Int,
-                visibleItemCount: Int,
-                totalItemCount: Int
-            ) {
-                if (firstVisibleItem + visibleItemCount >= totalItemCount && totalItemCount > 0 && isLoadAddItems) {
-                    // End has been reached
-                    ManagerKt.getInstance()?.loadNextItems()
-                    isLoadAddItems = false
-                }
-                if (firstVisibleItem + visibleItemCount < totalItemCount && !isLoadAddItems) {
-                    isLoadAddItems = true
+        list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                // Подгружаем следующую страницу незадолго до конца списка
+                if (dy > 0 && layoutManager.findLastVisibleItemPosition() >= adapter.itemCount - columns * 2) {
+                    manager.loadNextItems()
                 }
             }
-
-            override fun onScrollStateChanged(view: AbsListView, scrollState: Int) {}
         })
+
+        manager.loadFirstItems(contentType)
         return view
     }
 }

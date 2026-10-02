@@ -1,17 +1,55 @@
 <resources>
     <string name="app_name">Кыргызстан обои</string>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_subtitle">android.studio@android.com</string>
-    <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Настройки</string>
-    <string name="name">Кыргызстан</string>
     <string name="banner_ad_unit_id">ca-app-pub-2230097402282612/8321752465</string>
-    <string name="banner_ad_unit_id_nav">ca-app-pub-2230097402282612/8209410979</string>
     <string name="ad_for_grid">ca-app-pub-2230097402282612/9717223327</string>
     <string name="ad_between_page">ca-app-pub-2230097402282612/4583659604</string>
-    <string name="fab_options">Установить на главный экран</string>
-    <string name="fab_options_lock">Установить на экран блокировки</string>
-    <string name="fab_options_home_lock">Установить везде</string>
+
+    <string name="tab_nature">Природа</string>
+    <string name="tab_animals">Животные</string>
+    <string name="tab_arch">Архитектура</string>
+    <string name="tab_religion">Религия</string>
+    <string name="tab_people">Люди</string>
+    <string name="nav_favorites">Избранное</string>
+    <string name="no_internet">Нет подключения к интернету</string>
+    <string name="ad_badge">Реклама</string>
+    <string name="back">Назад</string>
+
+    <string name="set_wallpaper">Установить</string>
+    <string name="set_wallpaper_title">Установить обои</string>
+    <string name="fab_options">На главный экран</string>
+    <string name="fab_options_lock">На экран блокировки</string>
+    <string name="fab_options_home_lock">На оба экрана</string>
+    <string name="wallpaper_set">Обои успешно установлены!</string>
+    <string name="wallpaper_failed">Не удалось установить обои</string>
+    <string name="lock_not_supported">Ваше устройство не поддерживает изменение изображения экрана блокировки!</string>
+    <string name="fab_options_save">Сохранить на устройство</string>
+    <string name="fab_options_share">Поделиться</string>
+    <string name="fab_options_favorite">В избранное</string>
+    <string name="favorites_empty">В избранном пока пусто.\nНажмите на сердечко на любой картинке.</string>
+    <string name="favorite_added">Добавлено в избранное</string>
+    <string name="favorite_removed">Убрано из избранного</string>
+    <string name="image_saved">Изображение сохранено в галерею</string>
+    <string name="image_save_failed">Не удалось сохранить изображение</string>
+    <string name="image_load_failed">Не удалось загрузить изображение</string>
+    <string name="storage_permission_denied">Нет разрешения на сохранение файлов</string>
+    <string name="share_title">Поделиться</string>
+    <string name="share_text">Кыргызстан обои HD: https://play.google.com/store/apps/details?id=kg.black13.kyrgyzstanwallpaper</string>
+
+    <string name="settings_section_auto">Автоматически</string>
+    <string name="settings_auto_wallpaper">Менять обои каждый день</string>
+    <string name="settings_auto_wallpaper_hint">Раз в сутки на главный экран и экран блокировки ставится новая картинка</string>
+    <string name="settings_auto_source_favorites">Из избранного</string>
+    <string name="settings_auto_source_all">Из всех обоев</string>
+    <string name="settings_auto_no_favorites">В избранном пусто — картинки берутся из всех обоев</string>
+    <string name="settings_weekly">Уведомление «Обои недели»</string>
+    <string name="settings_weekly_hint">Раз в неделю присылаем одну новую картинку</string>
+    <string name="settings_section_rate">Оценить</string>
+    <string name="settings_rate">Оцените приложение</string>
+    <string name="settings_section_purchases">Покупки в приложении</string>
+    <string name="notifications_denied">Уведомления запрещены в настройках телефона</string>
+
+    <string name="weekly_channel">Обои недели</string>
+    <string name="weekly_title">Обои недели</string>
+    <string name="weekly_text">Новая картинка для вашего экрана</string>
 </resources>

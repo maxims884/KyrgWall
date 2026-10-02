@@ -1,254 +1,174 @@
 package kg.black13.kyrgyzstanwallpaper
 
+import android.Manifest
 import android.content.ContentValues
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.util.TypedValue
-import android.view.Menu
-import android.view.MenuItem
-import android.widget.FrameLayout
-import android.widget.RelativeLayout
-import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
-import androidx.core.view.GravityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.Purchase
-import com.google.android.gms.ads.AdError
-import com.google.android.gms.ads.AdListener
-import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.FullScreenContentCallback
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.interstitial.InterstitialAd
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.google.android.material.navigation.NavigationView
+import com.android.billingclient.api.QueryPurchasesParams
+import com.google.android.material.tabs.TabLayout
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kg.black13.kyrgyzstanwallpaper.databinding.ActivityMainBinding
-import kg.black13.kyrgyzstanwallpaper.databinding.AppBarMainBinding
 
-class MainActivityKt: AppCompatActivity(),NavigationView.OnNavigationItemSelectedListener {
+class MainActivityKt: AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-//    private lateinit var bindingToolbar: AppBarMainBinding
+
+    // Вкладки в том же порядке, что и на экране; первая — избранное
+    private val tabTypes = listOf(FavoritesKt.TYPE, "nature", "animals", "arch", "relig", "stars")
+    private val tabTitles = listOf(
+        R.string.nav_favorites, R.string.tab_nature, R.string.tab_animals,
+        R.string.tab_arch, R.string.tab_religion, R.string.tab_people
+    )
+    private val DEFAULT_TAB = 1
+
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
+        // Состояние экранов живёт в ManagerKt и не переживает пересоздание активити,
+        // поэтому фрагменты не восстанавливаем, а открываем приложение заново
+        super.onCreate(null)
         binding = ActivityMainBinding.inflate(layoutInflater)
-//        bindingToolbar = AppBarMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
         ManagerKt.getInstance()?.context = this
-
-        val toolbar = binding.includedAppBar.toolbarView.root as Toolbar?
-
-        setSupportActionBar(toolbar)
-
         ManagerKt.getInstance()?.sp = getSharedPreferences("Ad", MODE_PRIVATE)
         ManagerKt.getInstance()?.db = FirebaseFirestore.getInstance()
+        ManagerKt.getInstance()?.paginationList?.clear()
         checkProducts()
-        val drawer = binding.drawerLayout
 
-        val toggle = ActionBarDrawerToggle(
-            this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
-        )
-
-        drawer.addDrawerListener(toggle)
-        toggle.syncState()
-
-        val navigationView = binding.navView
-        navigationView.setNavigationItemSelectedListener(this)
-        ManagerKt.getInstance()?.mNavigator = FragmentNavigatorKt(supportFragmentManager, FragmentAdapterKt(), R.id.content)
-        ManagerKt.getInstance()?.DEFAULT_POSITION?.let {
-            ManagerKt.getInstance()?.mNavigator!!.setDefaultPosition(
-                it
-            )
-        }
-        ManagerKt.getInstance()?.mNavigator!!.onCreate(savedInstanceState)
-        ManagerKt.getInstance()?.mAdView = binding.includedAppBar.adView
-        ManagerKt.getInstance()?.mAdView1 = binding.adView1
-        if (ManagerKt.getInstance()?.getPrefRemoveAd() == 0) {
-            val adRequest = AdRequest.Builder().build()
-            val adRequest1 = AdRequest.Builder().build()
-            //AdRequest.Builder.addTestDevice(AdRequest.DEVICE_ID_EMULATOR).build();
-            ManagerKt.getInstance()?.mAdView!!.loadAd(adRequest)
-
-            ManagerKt.getInstance()?.mAdView?.adListener = object : AdListener() {
-                override fun onAdLoaded() {
-                    super.onAdLoaded()
-                    val params = binding.includedAppBar.content.layoutParams as RelativeLayout.LayoutParams
-
-
-                    val marginInDp = 55 // Значение в dp
-                    val marginInPx = TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_DIP, marginInDp.toFloat(),
-                        resources.displayMetrics
-                    ).toInt()
-
-                    params.setMargins(0, 0, 0, marginInPx)  // (левая, верхняя, правая, нижняя)
-                    binding.includedAppBar.content.layoutParams = params
-                    binding.includedAppBar.content.requestLayout()
-
-                    // Реклама успешно загружена
-                    Log.d("AdStatus", "Ad loaded successfully")
-                }
-
-                override fun onAdFailedToLoad(adError: LoadAdError) {
-                    super.onAdFailedToLoad(adError)
-                    // Ошибка при загрузке рекламы
-                    Log.d("AdStatus", "Ad failed to load: ${adError.message}")
-                    val params = binding.includedAppBar.content.layoutParams as RelativeLayout.LayoutParams
-                    params.setMargins(0, 0, 0, 0)  // (левая, верхняя, правая, нижняя)
-                    binding.includedAppBar.content.layoutParams = params
-                    binding.includedAppBar.content.requestLayout()
-                }
-
-                override fun onAdOpened() {
-                    super.onAdOpened()
-                    // Реклама была открыта
-                    Log.d("AdStatus", "Ad opened")
-                }
-
-                override fun onAdClosed() {
-                    super.onAdClosed()
-                    // Реклама была закрыта
-                    Log.d("AdStatus", "Ad closed")
-                }
-
-                override fun onAdClicked() {
-                    super.onAdClicked()
-                    // Реклама была нажата
-                    Log.d("AdStatus", "Ad clicked")
-                }
-
-                override fun onAdImpression() {
-                    super.onAdImpression()
-                    val params = binding.includedAppBar.contentRelative.layoutParams as RelativeLayout.LayoutParams
-                    params.setMargins(0, 0, 0, 110)  // (левая, верхняя, правая, нижняя)
-                    binding.includedAppBar.contentRelative.layoutParams = params
-                    // Реклама отобразилась
-                    Log.d("AdStatus", "Ad impression")
-                }
-            }
-
-            ManagerKt.getInstance()?.mAdView1!!.loadAd(adRequest1)
-            loadAdPage()
-            ManagerKt.getInstance()?.loader = AdLoader.Builder(this, getString(R.string.ad_for_grid))
-                .forNativeAd { nativeAd -> ManagerKt.getInstance()?.nativeAd = nativeAd }.build()
-        }
-        ManagerKt.getInstance()?.setCurrentTab(ManagerKt.getInstance()?.mNavigator!!.getCurrentPosition())
-    }
-
-    override fun onBackPressed() {
-        val drawer = binding.drawerLayout
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START)
-        } else {
-            super.onBackPressed()
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        val id = item.itemId
-        if (id == R.id.action_settings) {
-            ManagerKt.getInstance()?.setCurrentTabStack(FragmentIDsKt.Settings.value)
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        ManagerKt.getInstance()?.mNavigator!!.clearBackStack()
-        // Handle navigation view item clicks here.
-        // Handle navigation view item clicks here.
-        val id = item.itemId
-        var i: Int  = 0
-        i = ManagerKt.getInstance()?.adSequence!!
-        i += 1
-        ManagerKt.getInstance()?.adSequence = i
-
-        if (id == R.id.nav_nature) {
-            if (ManagerKt.getInstance()?.interstitialAd != null && ManagerKt.getInstance()?.adSequence!! % 3 == 0) {
-                ManagerKt.getInstance()?.interstitialAd!!.show(this)
-            }
-            ManagerKt.getInstance()?.paginationList?.clear()
-            ManagerKt.getInstance()?.setCurrentTab(FragmentIDsKt.NatureFragment.value, true) // Handle the camera action
-        } else if (id == R.id.nav_animals) {
-            if (ManagerKt.getInstance()?.interstitialAd != null && ManagerKt.getInstance()?.adSequence!! % 3 == 0) {
-                ManagerKt.getInstance()?.interstitialAd!!.show(this)
-            }
-            ManagerKt.getInstance()?.paginationList?.clear()
-            ManagerKt.getInstance()?.setCurrentTab(FragmentIDsKt.AnimalsFragment.value, true)
-        } else if (id == R.id.nav_arch) {
-            if (ManagerKt.getInstance()?.interstitialAd != null && ManagerKt.getInstance()?.adSequence!! % 3 == 0) {
-                ManagerKt.getInstance()?.interstitialAd!!.show(this)
-            }
-            ManagerKt.getInstance()?.paginationList?.clear()
-            ManagerKt.getInstance()?.setCurrentTab(FragmentIDsKt.ArchFragment.value, true)
-        } else if (id == R.id.nav_religion) {
-            if (ManagerKt.getInstance()?.interstitialAd != null && ManagerKt.getInstance()?.adSequence!! % 3 == 0) {
-                ManagerKt.getInstance()?.interstitialAd!!.show(this)
-            }
-            ManagerKt.getInstance()?.paginationList?.clear()
-            ManagerKt.getInstance()?.setCurrentTab(FragmentIDsKt.ReligionFragment.value, true)
-        } else if (id == R.id.nav_star) {
-            if (ManagerKt.getInstance()?.interstitialAd != null && ManagerKt.getInstance()?.adSequence!! % 3 == 0) {
-                ManagerKt.getInstance()?.interstitialAd!!.show(this)
-            }
-            ManagerKt.getInstance()?.paginationList?.clear()
-            ManagerKt.getInstance()?.setCurrentTab(FragmentIDsKt.StarsFragment.value, true)
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            if (item.itemId == R.id.action_settings) openSettings()
+            true
         }
 
-        val drawer = binding.drawerLayout
-        drawer.closeDrawer(GravityCompat.START)
-        return true
+        for (i in tabTypes.indices) {
+            val tab = binding.tabs.newTab()
+            if (tabTypes[i] == FavoritesKt.TYPE) {
+                tab.setIcon(R.drawable.ic_favorite).setContentDescription(tabTitles[i])
+            } else {
+                tab.setText(tabTitles[i])
+            }
+            binding.tabs.addTab(tab, false)
+        }
+        val picture = pictureFrom(intent)
+        val startTab = tabTypes.indexOf(picture?.type).takeIf { it >= 0 } ?: DEFAULT_TAB
+        binding.tabs.selectTab(binding.tabs.getTabAt(startTab))
+        binding.tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                showCategory(tabTypes[tab.position])
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) {}
+            override fun onTabReselected(tab: TabLayout.Tab) {}
+        })
+        showCategory(tabTypes[startTab])
+        if (picture != null) openPicture(picture)
+
+        AdsKt.init(this, binding.adContainer)
+        SchedulerKt.sync(this)
+        askNotificationPermission()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState!!)
-        ManagerKt.getInstance()?.mNavigator!!.onSaveInstanceState(outState)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val picture = pictureFrom(intent) ?: return
+        supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        val tab = tabTypes.indexOf(picture.type).takeIf { it >= 0 } ?: DEFAULT_TAB
+        // Если вкладка другая, сработает onTabSelected и загрузит категорию
+        binding.tabs.selectTab(binding.tabs.getTabAt(tab))
+        openPicture(picture)
     }
 
+    // Картинка из уведомления "Обои недели"
+    private fun pictureFrom(intent: Intent?): PictureKt? {
+        val url = intent?.getStringExtra(WeeklyWallpaperWorkerKt.EXTRA_URL) ?: return null
+        val picture = PictureKt()
+        picture.url = url
+        picture.urlSmall = intent.getStringExtra(WeeklyWallpaperWorkerKt.EXTRA_URL_SMALL)
+        picture.type = intent.getStringExtra(WeeklyWallpaperWorkerKt.EXTRA_TYPE)
+        return picture
+    }
 
+    // Ставит картинку первой в текущем списке и открывает её
+    private fun openPicture(picture: PictureKt) {
+        ManagerKt.getInstance()?.paginationList?.add(0, picture)
+        ManagerKt.getInstance()?.arrayAdapter?.refresh()
+        ManagerKt.getInstance()?.logEvent("open_weekly")
+        openGallery(0)
+    }
 
-//    fun isOnline(): Boolean {
-//        val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-//        if (cm != null) {
-//            val netInfo = cm.activeNetworkInfo
-//            return netInfo != null && netInfo.isConnectedOrConnecting
-//        }
-//        return false
-//    }
+    private fun showCategory(type: String) {
+        ManagerKt.getInstance()?.paginationList?.clear()
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.content, ContentFragmentKt.newInstance(type))
+            .commit()
+    }
+
+    fun openGallery(position: Int) {
+        ManagerKt.getInstance()?.position = position
+        supportFragmentManager.beginTransaction()
+            .add(R.id.overlay, GalleryKt())
+            .addToBackStack(null)
+            .commit()
+        AdsKt.onPictureOpened(this)
+    }
+
+    private fun openSettings() {
+        supportFragmentManager.beginTransaction()
+            .add(R.id.overlay, SettingsKt())
+            .addToBackStack(null)
+            .commit()
+    }
+
+    // Один раз спрашиваем разрешение на уведомления, чтобы приходили "Обои недели"
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33 || PrefsKt.isNotificationsAsked(this) || !PrefsKt.isWeekly(this)) return
+        PrefsKt.setNotificationsAsked(this)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     override fun onResume() {
         super.onResume()
-        if (ManagerKt.getInstance()?.getPrefRemoveAd() == 0) {
-            ManagerKt.getInstance()?.mAdView!!.resume()
-            ManagerKt.getInstance()?.mAdView1!!.resume()
-        } else ManagerKt.getInstance()?.loader = null
+        AdsKt.resume()
     }
 
     override fun onPause() {
         super.onPause()
-        if (ManagerKt.getInstance()?.getPrefRemoveAd() == 0) {
-            ManagerKt.getInstance()?.mAdView!!.pause()
-            ManagerKt.getInstance()?.mAdView1!!.pause()
-        } else ManagerKt.getInstance()?.loader = null
+        AdsKt.pause()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (ManagerKt.getInstance()?.getPrefRemoveAd() == 0) {
-            ManagerKt.getInstance()?.mAdView!!.destroy()
-            ManagerKt.getInstance()?.mAdView1!!.destroy()
-        } else ManagerKt.getInstance()?.loader = null
-//          MainActivityKt.getInstance().onDestroy();
+        AdsKt.destroy()
     }
 
 
@@ -278,23 +198,6 @@ class MainActivityKt: AppCompatActivity(),NavigationView.OnNavigationItemSelecte
                 }
                 i += 2
             }
-            //                for(StorageReference ref : listResult.getItems()){
-//
-//                    ref.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-//                        @Override
-//                        public void onSuccess(Uri uri) {
-//                            Picture p = new Picture();
-//                            p.setType(type);
-//                            p.setUrl(uri.toString());
-//                            dbImages.add(p).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-//                                @Override
-//                                public void onSuccess(DocumentReference documentReference) {
-//                                    Log.i(TAG, "Successfully added ");
-//                                }
-//                            });
-//                        }
-//                    });
-//                };
         }.addOnFailureListener { e ->
             Log.i(
                 ContentValues.TAG,
@@ -303,52 +206,11 @@ class MainActivityKt: AppCompatActivity(),NavigationView.OnNavigationItemSelecte
         }
     }
 
-    fun loadAdPage() {
-        val adRequest = AdRequest.Builder().build()
-        InterstitialAd.load(
-            this,
-            ManagerKt.getInstance()?.AD_UNIT_ID.toString(),
-            adRequest,
-            object : InterstitialAdLoadCallback() {
-                override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                    // The mInterstitialAd reference will be null until
-                    // an ad is loaded.
-
-                    ManagerKt.getInstance()?.interstitialAd = interstitialAd
-                    interstitialAd.setFullScreenContentCallback(
-                        object : FullScreenContentCallback() {
-                            override fun onAdDismissedFullScreenContent() {
-                                // Called when fullscreen content is dismissed.
-                                // Make sure to set your reference to null so you don't
-                                // show it a second time.
-                                ManagerKt.getInstance()?.interstitialAd = null
-                                loadAdPage()
-                            }
-
-                            override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                                // Called when fullscreen content failed to show.
-                                // Make sure to set your reference to null so you don't
-                                // show it a second time.
-                                ManagerKt.getInstance()?.interstitialAd = null
-                            }
-
-                            override fun onAdShowedFullScreenContent() {
-                                // Called when fullscreen content is shown.
-                            }
-                        })
-                }
-
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    // Handle the error
-                    ManagerKt.getInstance()?.interstitialAd = null
-                }
-            })
-    }
-
 
 
     private fun checkProducts() {
-        ManagerKt.getInstance()?.billingClient = BillingClient.newBuilder(this).enablePendingPurchases()
+        ManagerKt.getInstance()?.billingClient = BillingClient.newBuilder(this)
+            .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
             .setListener { billingResult: BillingResult?, list: List<Purchase?>? -> }
             .build()
 
@@ -357,20 +219,13 @@ class MainActivityKt: AppCompatActivity(),NavigationView.OnNavigationItemSelecte
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     ManagerKt.getInstance()?.billingClient!!.queryPurchasesAsync(
-                        BillingClient.SkuType.INAPP
+                        QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build()
                     ) { billingResult, list ->
-                        if (list.size == 0) ManagerKt.getInstance()?.setPrefRemoveAd(0) else {
-                            for (purchase in list) {
-                                if (purchase.skus[0] == "charity2") {
-                                    ManagerKt.getInstance()?.setPrefRemoveAd(0)
-                                }
-                            }
-                            for (purchase in list) {
-                                if (purchase.skus[0] == "ad_off2") {
-                                    ManagerKt.getInstance()?.setPrefRemoveAd(1)
-                                }
-                            }
+                        if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
+                        val adOff = list.any {
+                            it.purchaseState == Purchase.PurchaseState.PURCHASED && it.products.contains("ad_off2")
                         }
+                        ManagerKt.getInstance()?.setPrefRemoveAd(if (adOff) 1 else 0)
                     }
                 }
             }

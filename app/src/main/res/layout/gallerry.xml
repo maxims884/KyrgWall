@@ -1,62 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorWhite">
+    android:background="@color/colorBlack"
+    android:clickable="true"
+    android:focusable="true">
 
     <androidx.viewpager.widget.ViewPager
         android:id="@+id/pager"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginBottom="30dp"/>
+        android:layout_height="match_parent" />
 
-    <com.nambimobile.widgets.efab.ExpandableFabLayout
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_margin="12dp"
+        android:background="@drawable/bg_circle_scrim"
+        android:contentDescription="@string/back"
+        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_back" />
+
+    <!-- Панель действий с картинкой -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_bottom_scrim"
+        android:paddingTop="40dp">
 
-        <com.nambimobile.widgets.efab.Overlay
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:overlay_orientation="portrait" />
-
-        <com.nambimobile.widgets.efab.ExpandableFab
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_marginEnd="30dp"
-            android:layout_marginBottom="130dp"
-            app:efab_color="@color/colorPrimary"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
 
-            app:efab_orientation="portrait" />
+            <Button
+                android:id="@+id/btnFavorite"
+                style="?attr/materialIconButtonFilledTonalStyle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/fab_options_favorite"
+                app:icon="@drawable/ic_favorite_border"
+                app:iconSize="24dp" />
 
-        <com.nambimobile.widgets.efab.FabOption
-            android:id="@+id/fabOptionsLockHomeScreen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:fab_color="@color/colorPrimary"
-            app:fab_icon="@drawable/setwall"
-            app:fab_orientation="portrait"
-            app:label_text="@string/fab_options_home_lock" />
+            <Button
+                android:id="@+id/btnSave"
+                style="?attr/materialIconButtonFilledTonalStyle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/fab_options_save"
+                app:icon="@drawable/ic_save"
+                app:iconSize="24dp" />
 
-        <com.nambimobile.widgets.efab.FabOption
-            android:id="@+id/fabOptionsLockScreen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:fab_color="@color/colorPrimary"
-            app:fab_icon="@drawable/setwall"
-            app:fab_orientation="portrait"
-            app:label_text="@string/fab_options_lock" />
+            <Button
+                android:id="@+id/btnShare"
+                style="?attr/materialIconButtonFilledTonalStyle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/fab_options_share"
+                app:icon="@drawable/ic_share"
+                app:iconSize="24dp" />
 
-        <com.nambimobile.widgets.efab.FabOption
-            android:id="@+id/fabOption"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:fab_color="@color/colorPrimary"
-            app:fab_icon="@drawable/setwall"
-            app:fab_orientation="portrait"
-            app:label_text="@string/fab_options" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSet"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="@string/set_wallpaper"
+                android:textSize="16sp"
+                app:icon="@drawable/ic_wallpaper" />
+        </LinearLayout>
+    </FrameLayout>
 
-
-    </com.nambimobile.widgets.efab.ExpandableFabLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

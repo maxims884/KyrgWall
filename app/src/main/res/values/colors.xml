@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#d43131</color>
+    <color name="colorPrimary">#E5484D</color>
     <color name="colorPrimaryDark">#bf3037</color>
     <color name="colorAccent">#ac0003</color>
+    <color name="colorPrimaryContainer">#5C1A1D</color>
+    <color name="colorOnPrimaryContainer">#FFDAD8</color>
+    <color name="colorBackground">#101012</color>
+    <color name="colorSurface">#1B1B1F</color>
+    <color name="colorSurfaceHigh">#26262B</color>
+    <color name="colorOnSurface">#F2F2F4</color>
+    <color name="colorOnSurfaceVariant">#A9A9B2</color>
+    <color name="colorOutline">#3A3A42</color>
     <color name="colorWhite">#ffffff</color>
     <color name="colorBlack">#000000</color>
-    <color name="colorGray">#dfd9d9</color>
-    <color name="trans">#00000000 </color>
+    <color name="trans">#00000000</color>
 </resources>

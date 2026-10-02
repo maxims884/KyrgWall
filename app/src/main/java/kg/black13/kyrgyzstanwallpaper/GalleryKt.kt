@@ -1,33 +1,35 @@
 package kg.black13.kyrgyzstanwallpaper
 
-import android.app.WallpaperManager
-import android.graphics.Bitmap
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.viewpager.widget.ViewPager
 import androidx.viewpager.widget.ViewPager.OnPageChangeListener
 import com.bumptech.glide.Glide
-import com.bumptech.glide.request.target.SimpleTarget
-import com.bumptech.glide.request.transition.Transition
-import com.nambimobile.widgets.efab.FabOption
-import java.io.IOException
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GalleryKt : Fragment() {
-    var currentPosition = 0
     var viewPager: ViewPager? = null
-    var fabOption: FabOption? = null
-    var fabOptionLock: FabOption? = null
-    var fabOptionHomeLock: FabOption? = null
-    var bm: Bitmap? = null
-    private var selectedIndex = 0
-    private var isOnce = false
-    private var pageEnd = false
+    private var btnFavorite: MaterialButton? = null
+    private val scope = MainScope()
+    private val storagePermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) savePicture()
+            else Toast.makeText(requireContext(), R.string.storage_permission_denied, Toast.LENGTH_SHORT).show()
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,228 +37,162 @@ class GalleryKt : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.gallerry, container, false)
-        currentPosition =  ManagerKt.getInstance()?.position!!
+        val manager = ManagerKt.getInstance()!!
         viewPager = view.findViewById(R.id.pager)
-        ManagerKt.getInstance()?.customGalleryAdapter =
-            ManagerKt.getInstance()?.context?.let { ManagerKt.getInstance()?.paginationList?.let { it1 ->
-                CustomGalleryAdapterKt(it,
-                    it1
-                )
-            } }
-        viewPager!!.adapter =  ManagerKt.getInstance()?.customGalleryAdapter
-        viewPager!!.currentItem = currentPosition
+        manager.customGalleryAdapter = CustomGalleryAdapterKt(requireContext(), manager.paginationList)
+        viewPager!!.adapter = manager.customGalleryAdapter
+        viewPager!!.currentItem = manager.position ?: 0
 
         viewPager!!.addOnPageChangeListener(object : OnPageChangeListener {
-            var callHappened = false
-            override fun onPageScrolled(
-                position: Int,
-                positionOffset: Float,
-                positionOffsetPixels: Int
-            ) {
-                if (pageEnd && position == selectedIndex && !callHappened) {
-                    pageEnd = false //To avoid multiple calls.
-                    callHappened = true
-                } else {
-                    pageEnd = false
-                }
-            }
+            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
 
             override fun onPageSelected(position: Int) {
-                selectedIndex = position
-                isOnce = true
+                updateFavoriteButton()
+                // Дошли до последней картинки — подгружаем следующую страницу
+                if (position == manager.customGalleryAdapter!!.count - 1) manager.loadNextItems()
             }
 
-            override fun onPageScrollStateChanged(state: Int) {
-                if (isOnce && !pageEnd && selectedIndex ==   ManagerKt.getInstance()?.customGalleryAdapter!!.count - 1) {
-                    ManagerKt.getInstance()?.loadNextItems()
-                    pageEnd = true
-                    isOnce = false
+            override fun onPageScrollStateChanged(state: Int) {}
+        })
+
+        btnFavorite = view.findViewById(R.id.btnFavorite)
+        updateFavoriteButton()
+
+        view.findViewById<View>(R.id.btnBack).setOnClickListener { parentFragmentManager.popBackStack() }
+        view.findViewById<View>(R.id.btnSet).setOnClickListener { chooseWallpaperTarget() }
+        view.findViewById<View>(R.id.btnShare).setOnClickListener { sharePicture() }
+
+        view.findViewById<View>(R.id.btnSave).setOnClickListener {
+            if (Build.VERSION.SDK_INT < 29 && ContextCompat.checkSelfPermission(
+                    requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                savePicture()
+            }
+        }
+
+        btnFavorite!!.setOnClickListener {
+            val picture = currentPicture() ?: return@setOnClickListener
+            val added = FavoritesKt.toggle(requireContext(), picture)
+            if (added) manager.logEvent("favorite")
+            Toast.makeText(
+                requireContext(),
+                if (added) R.string.favorite_added else R.string.favorite_removed,
+                Toast.LENGTH_SHORT
+            ).show()
+            updateFavoriteButton()
+            // Сердечки в сетке под просмотром должны совпадать
+            manager.arrayAdapter?.refresh()
+        }
+        return view
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        ManagerKt.getInstance()?.customGalleryAdapter = null
+    }
+
+    private fun currentPicture(): PictureKt? {
+        return ManagerKt.getInstance()?.paginationList?.getOrNull(viewPager!!.currentItem)
+    }
+
+    private fun updateFavoriteButton() {
+        val picture = currentPicture() ?: return
+        val favorite = FavoritesKt.isFavorite(requireContext(), picture)
+        btnFavorite?.setIconResource(if (favorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border)
+    }
+
+    private fun chooseWallpaperTarget() {
+        val dialog = BottomSheetDialog(requireContext())
+        val sheet = layoutInflater.inflate(R.layout.dialog_set_wallpaper, null)
+        val options = mapOf(
+            R.id.optionHome to PictureActionsKt.TARGET_HOME,
+            R.id.optionLock to PictureActionsKt.TARGET_LOCK,
+            R.id.optionBoth to PictureActionsKt.TARGET_BOTH
+        )
+        for ((id, target) in options) {
+            sheet.findViewById<View>(id).setOnClickListener {
+                dialog.dismiss()
+                setWallpaper(target)
+            }
+        }
+        dialog.setContentView(sheet)
+        dialog.show()
+    }
+
+    private fun setWallpaper(target: Int) {
+        val url = currentPicture()?.url ?: return
+        val context = requireContext().applicationContext
+        if (target != PictureActionsKt.TARGET_HOME && !PictureActionsKt.isLockScreenSupported(context)) {
+            Toast.makeText(context, R.string.lock_not_supported, Toast.LENGTH_SHORT).show()
+            return
+        }
+        scope.launch {
+            val done = withContext(Dispatchers.IO) {
+                try {
+                    val bitmap = Glide.with(context).asBitmap().load(url).submit().get()
+                    PictureActionsKt.setWallpaper(context, bitmap, target)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    false
                 }
             }
-        })
+            Toast.makeText(
+                context,
+                if (done) R.string.wallpaper_set else R.string.wallpaper_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+            if (done) {
+                ManagerKt.getInstance()?.logEvent("set_wallpaper")
+                activity?.let { AdsKt.afterAction(it) }
+            }
+        }
+    }
 
-        fabOption = view.findViewById(R.id.fabOption)
-        fabOptionLock = view.findViewById(R.id.fabOptionsLockScreen)
-        fabOptionHomeLock = view.findViewById(R.id.fabOptionsLockHomeScreen)
+    private fun savePicture() {
+        val url = currentPicture()?.url ?: return
+        val context = requireContext().applicationContext
+        PictureActionsKt.loadFile(context, url) { file ->
+            if (file == null) {
+                Toast.makeText(context, R.string.image_load_failed, Toast.LENGTH_SHORT).show()
+                return@loadFile
+            }
+            scope.launch {
+                val saved = withContext(Dispatchers.IO) { PictureActionsKt.saveToGallery(context, file, url) }
+                Toast.makeText(
+                    context,
+                    if (saved) R.string.image_saved else R.string.image_save_failed,
+                    Toast.LENGTH_SHORT
+                ).show()
+                if (saved) {
+                    ManagerKt.getInstance()?.logEvent("save_picture")
+                    activity?.let { AdsKt.afterAction(it) }
+                }
+            }
+        }
+    }
 
-        fabOption!!.setOnClickListener(View.OnClickListener {
-            val builder = AlertDialog.Builder( ManagerKt.getInstance()?.context!!)
-            builder
-                .setMessage("Установить картинку в качестве изображения рабочего стола?")
-                .setCancelable(false)
-                .setNegativeButton(
-                    "Да!"
-                ) { dialog, _ ->
-                    currentPosition = viewPager!!.currentItem
-                    Glide.with(view).asBitmap()
-                        .load(ManagerKt.getInstance()?.paginationList?.get(currentPosition)?.url)
-                        .into(object : SimpleTarget<Bitmap?>() {
-                            override fun onResourceReady(
-                                resource: Bitmap,
-                                transition: Transition<in Bitmap?>?
-                            ) {
-                                bm = resource
-                                val myWallpaperManager =
-                                    WallpaperManager.getInstance(ManagerKt.getInstance()?.context)
-                                try {
-                                    myWallpaperManager.setBitmap(bm)
-                                    Toast.makeText(
-                                        ManagerKt.getInstance()?.context,
-                                        "Обои успешно установлены!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } catch (e: IOException) {
-                                    Toast.makeText(
-                                        ManagerKt.getInstance()?.context,
-                                        e.toString(),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    e.printStackTrace()
-                                }
-                            }
-                        })
-                    dialog.cancel()
-                }.setPositiveButton(
-                    "Отмена"
-                ) { dialog, id -> dialog.cancel() }
-            val alert = builder.create()
-            alert.show()
-        })
-
-        fabOptionLock!!.setOnClickListener(View.OnClickListener {
-            val builder = AlertDialog.Builder(ManagerKt.getInstance()?.context!!)
-            builder
-                .setMessage("Установить картинку в качестве изображения экрана блокировки?")
-                .setCancelable(false)
-                .setNegativeButton(
-                    "Да!"
-                ) { dialog, id ->
-                    currentPosition = viewPager!!.currentItem
-                    Glide.with(view).asBitmap()
-                        .load(ManagerKt.getInstance()?.paginationList?.get(currentPosition)?.url)
-                        .into(object : SimpleTarget<Bitmap?>() {
-                            override fun onResourceReady(
-                                resource: Bitmap,
-                                transition: Transition<in Bitmap?>?
-                            ) {
-                                bm = resource
-                                val myWallpaperManager =
-                                    WallpaperManager.getInstance(ManagerKt.getInstance()?.context)
-                                if (Build.VERSION.SDK_INT >= 24) {
-                                    if (myWallpaperManager.isSetWallpaperAllowed) {
-                                        try {
-                                            myWallpaperManager.setBitmap(
-                                                bm,
-                                                null,
-                                                false,
-                                                WallpaperManager.FLAG_LOCK
-                                            )
-                                            Toast.makeText(
-                                                ManagerKt.getInstance()?.context,
-                                                "Обои успешно установлены!",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        } catch (e: IOException) {
-                                            Toast.makeText(
-                                                ManagerKt.getInstance()?.context,
-                                                e.toString(),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            e.printStackTrace()
-                                        }
-                                    } else {
-                                        Toast.makeText(
-                                            ManagerKt.getInstance()?.context,
-                                            "Ваше устройство не поддерживает изменение изображения экрана блокировки!",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                } else {
-                                    Toast.makeText(
-                                        ManagerKt.getInstance()?.context,
-                                        "Не поддерживается на вашем устройстве",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        })
-                    dialog.cancel()
-                }.setPositiveButton(
-                    "Отмена"
-                ) { dialog, _ -> dialog.cancel() }
-            val alert = builder.create()
-            alert.show()
-        })
-
-        fabOptionHomeLock!!.setOnClickListener(View.OnClickListener {
-            val builder = AlertDialog.Builder(ManagerKt.getInstance()?.context!!)
-            builder
-                .setMessage("Установить картинку в качестве изображения рабочего стола и экрана блокировки?")
-                .setCancelable(false)
-                .setNegativeButton(
-                    "Да!"
-                ) { dialog, id ->
-                    currentPosition = viewPager!!.currentItem
-                    Glide.with(view).asBitmap()
-                        .load(ManagerKt.getInstance()?.paginationList?.get(currentPosition)?.url)
-                        .into(object : SimpleTarget<Bitmap?>() {
-                            override fun onResourceReady(
-                                resource: Bitmap,
-                                transition: Transition<in Bitmap?>?
-                            ) {
-                                bm = resource
-                                val myWallpaperManager =
-                                    WallpaperManager.getInstance(ManagerKt.getInstance()?.context)
-                                try {
-                                    myWallpaperManager.setBitmap(bm)
-                                } catch (e: IOException) {
-                                    e.printStackTrace()
-                                }
-                                if (Build.VERSION.SDK_INT >= 24) {
-                                    if (myWallpaperManager.isSetWallpaperAllowed) {
-                                        try {
-                                            myWallpaperManager.setBitmap(
-                                                bm,
-                                                null,
-                                                false,
-                                                WallpaperManager.FLAG_LOCK
-                                            )
-                                            Toast.makeText(
-                                                ManagerKt.getInstance()?.context,
-                                                "Обои успешно установлены!",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        } catch (e: IOException) {
-                                            Toast.makeText(
-                                                ManagerKt.getInstance()?.context,
-                                                e.toString(),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            e.printStackTrace()
-                                        }
-                                    } else {
-                                        Toast.makeText(
-                                            ManagerKt.getInstance()?.context,
-                                            "Ваше устройство не поддерживает изменение изображения экрана блокировки!",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                } else {
-                                    Toast.makeText(
-                                        ManagerKt.getInstance()?.context,
-                                        "Не поддерживается на вашем устройстве",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        })
-                    dialog.cancel()
-                }.setPositiveButton(
-                    "Отмена"
-                ) { dialog, _ -> dialog.cancel() }
-            val alert = builder.create()
-            alert.show()
-        })
-        return view
+    private fun sharePicture() {
+        val url = currentPicture()?.url ?: return
+        val context = requireContext().applicationContext
+        PictureActionsKt.loadFile(context, url) { file ->
+            if (file == null) {
+                Toast.makeText(context, R.string.image_load_failed, Toast.LENGTH_SHORT).show()
+                return@loadFile
+            }
+            scope.launch {
+                val intent = withContext(Dispatchers.IO) { PictureActionsKt.shareIntent(context, file, url) }
+                val activity = activity
+                if (intent == null) {
+                    Toast.makeText(context, R.string.image_load_failed, Toast.LENGTH_SHORT).show()
+                } else if (activity != null) {
+                    ManagerKt.getInstance()?.logEvent("share_picture")
+                    // Если подошла очередь рекламы, окно отправки откроется после неё
+                    AdsKt.afterAction(activity) { activity.startActivity(intent) }
+                }
+            }
+        }
     }
 }
