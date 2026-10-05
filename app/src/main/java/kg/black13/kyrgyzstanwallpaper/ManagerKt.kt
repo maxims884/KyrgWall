@@ -66,7 +66,7 @@ class ManagerKt  constructor() {
             CatalogKt.load(context!!) { pictures ->
                 if (type != currentType) return@load
                 loading = false
-                paginationList.addAll(pictures.shuffled())
+                paginationList.addAll(CatalogKt.feedOrder(pictures))
                 onItemsChanged()
             }
             return

@@ -43,6 +43,25 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        <!-- Автор и лицензия фото: для Wikimedia Commons это обязательное условие -->
+        <TextView
+            android:id="@+id/credit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="?attr/selectableItemBackground"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#B3FFFFFF"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="16dp">
@@ -102,6 +121,7 @@
                 app:icon="@drawable/ic_wallpaper"
                 app:iconGravity="textStart"
                 app:iconPadding="6dp" />
+        </LinearLayout>
         </LinearLayout>
     </FrameLayout>
 

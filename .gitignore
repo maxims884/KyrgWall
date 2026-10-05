@@ -11,3 +11,7 @@
 /func
 /functions
 /node_modules
+
+# Пробные картинки бота контента
+content_bot/out/
+__pycache__/

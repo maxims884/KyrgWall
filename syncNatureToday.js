@@ -67,6 +67,7 @@ exports.syncNatureToday = onRequest(async (req, res) => {
         type: "nature",
         url: url,
         urlSmall: urlSmall,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     }
 

@@ -3,8 +3,12 @@ package kg.black13.kyrgyzstanwallpaper
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.TypedValue
+import android.widget.TextView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,6 +32,7 @@ class GalleryKt : Fragment() {
     private var btnFavorite: MaterialButton? = null
     private var btnSet: MaterialButton? = null
     private var btnEdit: View? = null
+    private var creditView: TextView? = null
     private var btnSave: View? = null
     private val scope = MainScope()
     private val storagePermission =
@@ -63,6 +68,7 @@ class GalleryKt : Fragment() {
         btnFavorite = view.findViewById(R.id.btnFavorite)
         btnSet = view.findViewById(R.id.btnSet)
         btnEdit = view.findViewById(R.id.btnEdit)
+        creditView = view.findViewById(R.id.credit)
         btnSave = view.findViewById(R.id.btnSave)
         btnEdit!!.setOnClickListener {
             currentPicture()?.let { (activity as MainActivityKt).openCardEditor(it) }
@@ -138,6 +144,20 @@ class GalleryKt : Fragment() {
         val picture = currentPicture() ?: return
         val favorite = FavoritesKt.isFavorite(requireContext(), picture)
         btnFavorite?.setIconResource(if (favorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border)
+
+        val credit = picture.credit()
+        creditView?.text = credit
+        creditView?.visibility = if (credit == null) View.GONE else View.VISIBLE
+        creditView?.setOnClickListener {
+            val url = picture.sourceUrl
+            if (!url.isNullOrBlank()) {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                } catch (e: ActivityNotFoundException) {
+                    e.printStackTrace()
+                }
+            }
+        }
 
         val card = isCard()
         // У открытки вместо сохранения — открытка с именем
