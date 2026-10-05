@@ -26,6 +26,12 @@ class CustomGalleryAdapterKt(c: Context, images: ArrayList<PictureKt>):PagerAdap
         return images.size
     }
 
+    // Если список картинок изменился, пока открыт просмотр, страницы пересоздаются.
+    // Иначе на экране осталась бы старая картинка, а кнопки работали бы уже с другой
+    override fun getItemPosition(`object`: Any): Int {
+        return POSITION_NONE
+    }
+
     override fun isViewFromObject(view: View, `object`: Any): Boolean {
         return view === `object` as ConstraintLayout
     }
