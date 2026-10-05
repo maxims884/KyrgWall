@@ -148,10 +148,21 @@ object CatalogKt {
         }
     }
 
-    /** Порядок ленты: сначала новые (свежие сверху), потом остальное вперемешку */
+    /**
+     * Порядок ленты: при каждом открытии новый. Свежие картинки (за последние дни) тоже
+     * перемешаны, но идут чаще: каждая третья в начале ленты, пока они не кончатся.
+     * Так новое заметно сразу, но лента не превращается в один и тот же блок новинок.
+     */
     fun feedOrder(pictures: List<PictureKt>): List<PictureKt> {
         val border = System.currentTimeMillis() - NEW_FOR
         val (fresh, rest) = pictures.partition { (it.createdAt?.time ?: 0L) > border }
-        return fresh.sortedByDescending { it.createdAt } + rest.shuffled()
+        val freshQueue = ArrayDeque(fresh.shuffled())
+        val restQueue = ArrayDeque(rest.shuffled())
+        val result = ArrayList<PictureKt>(pictures.size)
+        while (freshQueue.isNotEmpty() || restQueue.isNotEmpty()) {
+            freshQueue.removeFirstOrNull()?.let { result.add(it) }
+            repeat(2) { restQueue.removeFirstOrNull()?.let { result.add(it) } }
+        }
+        return result
     }
 }
