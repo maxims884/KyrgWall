@@ -31,6 +31,8 @@ class ManagerKt  constructor() {
     var context: Context? = null
     companion object{
         private const val PAGE_SIZE = 30L
+        // После смены темы активити пересоздаётся; возвращаем пользователя в настройки
+        var reopenSettings = false
         private  var instance: ManagerKt? = null
         fun getInstance() = synchronized(this){
             if(instance == null)
@@ -46,7 +48,17 @@ class ManagerKt  constructor() {
         if (type == FavoritesKt.TYPE) {
             paginationList.addAll(FavoritesKt.getAll(context!!))
             onItemsChanged()
-            emptyView?.visibility = if (paginationList.isEmpty()) View.VISIBLE else View.GONE
+            return
+        }
+        if (type == CatalogKt.FEED) {
+            // Лента: все категории вперемешку, при каждом открытии в новом порядке
+            loading = true
+            CatalogKt.load(context!!) { pictures ->
+                if (type != currentType) return@load
+                loading = false
+                paginationList.addAll(pictures.shuffled())
+                onItemsChanged()
+            }
             return
         }
         loading = true
@@ -70,7 +82,7 @@ class ManagerKt  constructor() {
     fun loadNextItems() {
         val type = currentType
         val last = lastVisible
-        if (type == FavoritesKt.TYPE || last == null || loading) return
+        if (type == FavoritesKt.TYPE || type == CatalogKt.FEED || last == null || loading) return
         loading = true
         db.collection(type)
                 .orderBy("url")
@@ -92,6 +104,7 @@ class ManagerKt  constructor() {
     private fun onItemsChanged() {
         pullToRefresh?.isRefreshing = false
         pgsBar?.visibility = View.INVISIBLE
+        emptyView?.visibility = if (paginationList.isEmpty()) View.VISIBLE else View.GONE
         arrayAdapter?.refresh()
         customGalleryAdapter?.notifyDataSetChanged()
     }

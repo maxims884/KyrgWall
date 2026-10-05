@@ -14,11 +14,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.android.billingclient.api.*
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import java.util.*
 
@@ -47,6 +49,9 @@ class SettingsKt : Fragment() {
             .setNavigationOnClickListener { parentFragmentManager.popBackStack() }
         setupAutoWallpaper(view)
         setupWeekly(view)
+        setupReminder(view)
+        setupTheme(view)
+        setupLanguage(view)
 
         btnRate.setOnClickListener {
             val appPackageName = ManagerKt.getInstance()?.context?.packageName
@@ -122,6 +127,61 @@ class SettingsKt : Fragment() {
             } else {
                 setWeekly(checked)
             }
+        }
+    }
+
+    private fun setupReminder(view: View) {
+        val context = requireContext()
+        val switchReminder = view.findViewById<MaterialSwitch>(R.id.switchReminder)
+        switchReminder.isChecked = PrefsKt.isReminder(context) && hasNotificationPermission()
+        switchReminder.setOnCheckedChangeListener { _, checked ->
+            PrefsKt.setReminder(context, checked)
+            SchedulerKt.sync(context)
+        }
+    }
+
+    private fun setupTheme(view: View) {
+        val context = requireContext()
+        val modes = mapOf(
+            R.id.themeSystem to AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
+            R.id.themeLight to AppCompatDelegate.MODE_NIGHT_NO,
+            R.id.themeDark to AppCompatDelegate.MODE_NIGHT_YES
+        )
+        val group = view.findViewById<MaterialButtonToggleGroup>(R.id.themeMode)
+        val current = PrefsKt.getNightMode(context)
+        group.check(modes.entries.firstOrNull { it.value == current }?.key ?: R.id.themeSystem)
+        group.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            val mode = modes[checkedId]
+            if (isChecked && mode != null && mode != PrefsKt.getNightMode(context)) {
+                PrefsKt.setNightMode(context, mode)
+                // Активити пересоздастся с новой темой и снова откроет настройки
+                ManagerKt.reopenSettings = true
+                AppCompatDelegate.setDefaultNightMode(mode)
+            }
+        }
+    }
+
+    private fun setupLanguage(view: View) {
+        val tags = listOf("", "ru", "ky", "en")
+        val names = arrayOf(
+            getString(R.string.lang_system), getString(R.string.lang_ru),
+            getString(R.string.lang_ky), getString(R.string.lang_en)
+        )
+        val button = view.findViewById<Button>(R.id.btnLanguage)
+        val current = tags.indexOf(LanguageKt.current()).coerceAtLeast(0)
+        button.text = names[current]
+        button.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.settings_section_language)
+                .setSingleChoiceItems(names, current) { dialog, which ->
+                    dialog.dismiss()
+                    if (which != current) {
+                        // Активити пересоздастся с новым языком и снова откроет настройки
+                        ManagerKt.reopenSettings = true
+                        LanguageKt.set(requireContext(), tags[which])
+                    }
+                }
+                .show()
         }
     }
 

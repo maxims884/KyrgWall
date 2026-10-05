@@ -8,8 +8,9 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.SystemBarStyle
+import android.content.res.Configuration
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -30,21 +31,24 @@ class MainActivityKt: AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     // Вкладки в том же порядке, что и на экране; первая — избранное
-    private val tabTypes = listOf(FavoritesKt.TYPE, "nature", "animals", "arch", "relig", "stars")
-    private val tabTitles = listOf(
-        R.string.nav_favorites, R.string.tab_nature, R.string.tab_animals,
-        R.string.tab_arch, R.string.tab_religion, R.string.tab_people
+    private val tabTypes = listOf(
+        FavoritesKt.TYPE, CatalogKt.FEED, CatalogKt.CARDS, "nature", "animals", "arch", "relig", "stars"
     )
+    private val tabTitles = listOf(
+        R.string.nav_favorites, R.string.tab_feed, R.string.tab_cards, R.string.tab_nature,
+        R.string.tab_animals, R.string.tab_arch, R.string.tab_religion, R.string.tab_people
+    )
+    // Приложение открывается на ленте
     private val DEFAULT_TAB = 1
 
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
         // Состояние экранов живёт в ManagerKt и не переживает пересоздание активити,
         // поэтому фрагменты не восстанавливаем, а открываем приложение заново
         super.onCreate(null)
+        enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
@@ -76,7 +80,7 @@ class MainActivityKt: AppCompatActivity() {
             binding.tabs.addTab(tab, false)
         }
         val picture = pictureFrom(intent)
-        val startTab = tabTypes.indexOf(picture?.type).takeIf { it >= 0 } ?: DEFAULT_TAB
+        val startTab = DEFAULT_TAB
         binding.tabs.selectTab(binding.tabs.getTabAt(startTab))
         binding.tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
@@ -90,27 +94,45 @@ class MainActivityKt: AppCompatActivity() {
         if (picture != null) openPicture(picture)
 
         AdsKt.init(this, binding.adContainer)
+        PrefsKt.markOpened(this)
+        LanguageKt.remember(this)
         SchedulerKt.sync(this)
         askNotificationPermission()
+        if (ManagerKt.reopenSettings) {
+            ManagerKt.reopenSettings = false
+            openSettings()
+        }
+    }
+
+    /** Просмотр картинки всегда на чёрном фоне, независимо от темы */
+    fun setViewerMode(viewer: Boolean) {
+        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        binding.root.setBackgroundColor(
+            if (viewer) Color.BLACK else ContextCompat.getColor(this, R.color.colorBackground)
+        )
+        val controller = WindowCompat.getInsetsController(window, binding.root)
+        controller.isAppearanceLightStatusBars = !viewer && !night
+        controller.isAppearanceLightNavigationBars = !viewer && !night
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         val picture = pictureFrom(intent) ?: return
         supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
-        val tab = tabTypes.indexOf(picture.type).takeIf { it >= 0 } ?: DEFAULT_TAB
-        // Если вкладка другая, сработает onTabSelected и загрузит категорию
-        binding.tabs.selectTab(binding.tabs.getTabAt(tab))
+        // Картинка из уведомления показывается первой в ленте.
+        // Если открыта другая вкладка, сработает onTabSelected и загрузит ленту
+        binding.tabs.selectTab(binding.tabs.getTabAt(DEFAULT_TAB))
         openPicture(picture)
     }
 
-    // Картинка из уведомления "Обои недели"
+    // Картинка из уведомления
     private fun pictureFrom(intent: Intent?): PictureKt? {
-        val url = intent?.getStringExtra(WeeklyWallpaperWorkerKt.EXTRA_URL) ?: return null
+        val url = intent?.getStringExtra(NotificationsKt.EXTRA_URL) ?: return null
         val picture = PictureKt()
         picture.url = url
-        picture.urlSmall = intent.getStringExtra(WeeklyWallpaperWorkerKt.EXTRA_URL_SMALL)
-        picture.type = intent.getStringExtra(WeeklyWallpaperWorkerKt.EXTRA_TYPE)
+        picture.urlSmall = intent.getStringExtra(NotificationsKt.EXTRA_URL_SMALL)
+        picture.type = intent.getStringExtra(NotificationsKt.EXTRA_TYPE)
         return picture
     }
 
@@ -118,7 +140,7 @@ class MainActivityKt: AppCompatActivity() {
     private fun openPicture(picture: PictureKt) {
         ManagerKt.getInstance()?.paginationList?.add(0, picture)
         ManagerKt.getInstance()?.arrayAdapter?.refresh()
-        ManagerKt.getInstance()?.logEvent("open_weekly")
+        ManagerKt.getInstance()?.logEvent("open_notification")
         openGallery(0)
     }
 
@@ -145,9 +167,9 @@ class MainActivityKt: AppCompatActivity() {
             .commit()
     }
 
-    // Один раз спрашиваем разрешение на уведомления, чтобы приходили "Обои недели"
+    // Один раз спрашиваем разрешение на уведомления
     private fun askNotificationPermission() {
-        if (Build.VERSION.SDK_INT < 33 || PrefsKt.isNotificationsAsked(this) || !PrefsKt.isWeekly(this)) return
+        if (Build.VERSION.SDK_INT < 33 || PrefsKt.isNotificationsAsked(this)) return
         PrefsKt.setNotificationsAsked(this)
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED

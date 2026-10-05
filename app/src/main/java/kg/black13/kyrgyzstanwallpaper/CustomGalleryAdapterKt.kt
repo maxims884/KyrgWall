@@ -51,6 +51,8 @@ class CustomGalleryAdapterKt(c: Context, images: ArrayList<PictureKt>):PagerAdap
                 Glide.with(context!!).load(urlSmall).thumbnail(0.1f)
             ).into(imgDisplay)
         }
+        // По тегу GalleryKt находит страницу, которая сейчас на экране
+        viewLayout.tag = position
         (container as ViewPager).addView(viewLayout)
         return viewLayout
     }

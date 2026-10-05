@@ -16,6 +16,7 @@ import androidx.viewpager.widget.ViewPager.OnPageChangeListener
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
+import com.ortiz.touchview.TouchImageView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -24,6 +25,7 @@ import kotlinx.coroutines.withContext
 class GalleryKt : Fragment() {
     var viewPager: ViewPager? = null
     private var btnFavorite: MaterialButton? = null
+    private var btnSet: MaterialButton? = null
     private val scope = MainScope()
     private val storagePermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -47,7 +49,7 @@ class GalleryKt : Fragment() {
             override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
 
             override fun onPageSelected(position: Int) {
-                updateFavoriteButton()
+                updateButtons()
                 // Дошли до последней картинки — подгружаем следующую страницу
                 if (position == manager.customGalleryAdapter!!.count - 1) manager.loadNextItems()
             }
@@ -56,11 +58,15 @@ class GalleryKt : Fragment() {
         })
 
         btnFavorite = view.findViewById(R.id.btnFavorite)
-        updateFavoriteButton()
+        btnSet = view.findViewById(R.id.btnSet)
+        updateButtons()
+        setupSwipeDismiss(view)
+        (activity as MainActivityKt).setViewerMode(true)
 
         view.findViewById<View>(R.id.btnBack).setOnClickListener { parentFragmentManager.popBackStack() }
-        view.findViewById<View>(R.id.btnSet).setOnClickListener { chooseWallpaperTarget() }
-        view.findViewById<View>(R.id.btnShare).setOnClickListener { sharePicture() }
+        // У открытки главная кнопка отправляет её в WhatsApp, у обоев — ставит на экран
+        btnSet!!.setOnClickListener { if (isCard()) sharePicture(true) else chooseWallpaperTarget() }
+        view.findViewById<View>(R.id.btnShare).setOnClickListener { sharePicture(false) }
 
         view.findViewById<View>(R.id.btnSave).setOnClickListener {
             if (Build.VERSION.SDK_INT < 29 && ContextCompat.checkSelfPermission(
@@ -82,7 +88,7 @@ class GalleryKt : Fragment() {
                 if (added) R.string.favorite_added else R.string.favorite_removed,
                 Toast.LENGTH_SHORT
             ).show()
-            updateFavoriteButton()
+            updateButtons()
             // Сердечки в сетке под просмотром должны совпадать
             manager.arrayAdapter?.refresh()
         }
@@ -92,16 +98,45 @@ class GalleryKt : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         ManagerKt.getInstance()?.customGalleryAdapter = null
+        (activity as MainActivityKt).setViewerMode(false)
+    }
+
+    // Свайп вниз закрывает просмотр: фон светлеет, кнопки исчезают
+    private fun setupSwipeDismiss(view: View) {
+        val swipe = view.findViewById<SwipeDismissLayoutKt>(R.id.swipeDismiss)
+        val root = view.findViewById<View>(R.id.galleryRoot)
+        val controls = listOf<View>(view.findViewById(R.id.btnBack), view.findViewById(R.id.actionBar))
+        swipe.canDismiss = {
+            // Увеличенную картинку пользователь двигает, а не закрывает
+            val page = viewPager!!.findViewWithTag<View>(viewPager!!.currentItem)
+            page?.findViewById<TouchImageView>(R.id.imgDisplay)?.isZoomed != true
+        }
+        swipe.onDrag = { progress ->
+            root.background.mutate().alpha =((1f - progress) * 255).toInt()
+            for (control in controls) control.alpha = (1f - progress * 3).coerceAtLeast(0f)
+        }
+        swipe.onDismiss = { if (isAdded) parentFragmentManager.popBackStack() }
     }
 
     private fun currentPicture(): PictureKt? {
         return ManagerKt.getInstance()?.paginationList?.getOrNull(viewPager!!.currentItem)
     }
 
-    private fun updateFavoriteButton() {
+    private fun isCard(): Boolean {
+        return currentPicture()?.type == CatalogKt.CARDS
+    }
+
+    private fun updateButtons() {
         val picture = currentPicture() ?: return
         val favorite = FavoritesKt.isFavorite(requireContext(), picture)
         btnFavorite?.setIconResource(if (favorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border)
+
+        val card = isCard()
+        btnSet?.setText(if (card) R.string.send_whatsapp else R.string.set_wallpaper)
+        btnSet?.setIconResource(if (card) R.drawable.ic_share else R.drawable.ic_wallpaper)
+        btnSet?.backgroundTintList = ContextCompat.getColorStateList(
+            requireContext(), if (card) R.color.colorWhatsApp else R.color.colorPrimary
+        )
     }
 
     private fun chooseWallpaperTarget() {
@@ -174,7 +209,7 @@ class GalleryKt : Fragment() {
         }
     }
 
-    private fun sharePicture() {
+    private fun sharePicture(toWhatsApp: Boolean) {
         val url = currentPicture()?.url ?: return
         val context = requireContext().applicationContext
         PictureActionsKt.loadFile(context, url) { file ->
@@ -190,7 +225,7 @@ class GalleryKt : Fragment() {
                 } else if (activity != null) {
                     ManagerKt.getInstance()?.logEvent("share_picture")
                     // Если подошла очередь рекламы, окно отправки откроется после неё
-                    AdsKt.afterAction(activity) { activity.startActivity(intent) }
+                    AdsKt.afterAction(activity) { PictureActionsKt.share(activity, intent, toWhatsApp) }
                 }
             }
         }

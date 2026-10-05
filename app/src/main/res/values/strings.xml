@@ -1,10 +1,12 @@
 <resources>
     <string name="app_name">Кыргызстан обои</string>
     <string name="action_settings">Настройки</string>
-    <string name="banner_ad_unit_id">ca-app-pub-2230097402282612/8321752465</string>
-    <string name="ad_for_grid">ca-app-pub-2230097402282612/9717223327</string>
-    <string name="ad_between_page">ca-app-pub-2230097402282612/4583659604</string>
+    <string name="banner_ad_unit_id" translatable="false">ca-app-pub-2230097402282612/8321752465</string>
+    <string name="ad_for_grid" translatable="false">ca-app-pub-2230097402282612/9717223327</string>
+    <string name="ad_between_page" translatable="false">ca-app-pub-2230097402282612/4583659604</string>
 
+    <string name="tab_feed">Лента</string>
+    <string name="tab_cards">Открытки WhatsApp</string>
     <string name="tab_nature">Природа</string>
     <string name="tab_animals">Животные</string>
     <string name="tab_arch">Архитектура</string>
@@ -15,6 +17,9 @@
     <string name="ad_badge">Реклама</string>
     <string name="back">Назад</string>
 
+    <string name="cards_empty">Открытки скоро появятся</string>
+    <string name="load_failed">Не удалось загрузить картинки.\nПотяните вниз, чтобы обновить.</string>
+    <string name="send_whatsapp">Отправить в WhatsApp</string>
     <string name="set_wallpaper">Установить</string>
     <string name="set_wallpaper_title">Установить обои</string>
     <string name="fab_options">На главный экран</string>
@@ -40,15 +45,29 @@
     <string name="settings_auto_wallpaper">Менять обои каждый день</string>
     <string name="settings_auto_wallpaper_hint">Раз в сутки на главный экран и экран блокировки ставится новая картинка</string>
     <string name="settings_auto_source_favorites">Из избранного</string>
-    <string name="settings_auto_source_all">Из всех обоев</string>
+    <string name="settings_auto_source_all">Из всех</string>
     <string name="settings_auto_no_favorites">В избранном пусто — картинки берутся из всех обоев</string>
     <string name="settings_weekly">Уведомление «Обои недели»</string>
     <string name="settings_weekly_hint">Раз в неделю присылаем одну новую картинку</string>
+    <string name="settings_reminder">Напоминать о новых обоях</string>
+    <string name="settings_reminder_hint">Одно уведомление, если вы не заходили 5 дней, и ещё одно через две недели</string>
+    <string name="settings_section_theme">Оформление</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="settings_section_language">Язык</string>
+    <string name="lang_system">Как в системе</string>
+    <string name="lang_ru" translatable="false">Русский</string>
+    <string name="lang_ky" translatable="false">Кыргызча</string>
+    <string name="lang_en" translatable="false">English</string>
     <string name="settings_section_rate">Оценить</string>
     <string name="settings_rate">Оцените приложение</string>
     <string name="settings_section_purchases">Покупки в приложении</string>
     <string name="notifications_denied">Уведомления запрещены в настройках телефона</string>
 
+    <string name="reminder_channel">Напоминания</string>
+    <string name="reminder_title">Давно не виделись</string>
+    <string name="reminder_text">В ленте появились новые картинки</string>
     <string name="weekly_channel">Обои недели</string>
     <string name="weekly_title">Обои недели</string>
     <string name="weekly_text">Новая картинка для вашего экрана</string>

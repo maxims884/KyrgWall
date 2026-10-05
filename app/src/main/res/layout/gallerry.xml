@@ -3,14 +3,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/galleryRoot"
     android:background="@color/colorBlack"
     android:clickable="true"
     android:focusable="true">
 
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/pager"
+    <!-- Свайп вниз закрывает просмотр -->
+    <kg.black13.kyrgyzstanwallpaper.SwipeDismissLayoutKt
+        android:id="@+id/swipeDismiss"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <androidx.viewpager.widget.ViewPager
+            android:id="@+id/pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </kg.black13.kyrgyzstanwallpaper.SwipeDismissLayoutKt>
 
     <ImageButton
         android:id="@+id/btnBack"
@@ -25,6 +33,7 @@
 
     <!-- Панель действий с картинкой -->
     <FrameLayout
+        android:id="@+id/actionBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"

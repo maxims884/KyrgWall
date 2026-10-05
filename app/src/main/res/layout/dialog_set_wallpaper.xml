@@ -30,6 +30,7 @@
         android:text="@string/fab_options"
         android:textColor="@color/colorOnSurface"
         android:textSize="16sp"
+        app:drawableTint="@color/colorOnSurface"
         app:drawableStartCompat="@drawable/ic_home" />
 
     <TextView
@@ -44,6 +45,7 @@
         android:text="@string/fab_options_lock"
         android:textColor="@color/colorOnSurface"
         android:textSize="16sp"
+        app:drawableTint="@color/colorOnSurface"
         app:drawableStartCompat="@drawable/ic_lock" />
 
     <TextView
@@ -58,6 +60,7 @@
         android:text="@string/fab_options_home_lock"
         android:textColor="@color/colorOnSurface"
         android:textSize="16sp"
+        app:drawableTint="@color/colorOnSurface"
         app:drawableStartCompat="@drawable/ic_phone" />
 
 </LinearLayout>

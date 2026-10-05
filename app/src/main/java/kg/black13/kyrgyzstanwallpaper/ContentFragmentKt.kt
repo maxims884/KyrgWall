@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
@@ -36,7 +37,15 @@ class ContentFragmentKt : Fragment() {
         val list = view.findViewById<RecyclerView>(R.id.content_list)
         manager.pgsBar = view.findViewById(R.id.pBar)
         manager.pgsBar!!.visibility = View.VISIBLE
-        manager.emptyView = view.findViewById(R.id.emptyText)
+        val emptyText = view.findViewById<TextView>(R.id.emptyText)
+        emptyText.setText(
+            when (contentType) {
+                FavoritesKt.TYPE -> R.string.favorites_empty
+                CatalogKt.CARDS -> R.string.cards_empty
+                else -> R.string.load_failed
+            }
+        )
+        manager.emptyView = emptyText
         manager.pullToRefresh = view.findViewById(R.id.pullToRefresh)
 
         // На планшетах три колонки
@@ -55,7 +64,8 @@ class ContentFragmentKt : Fragment() {
         manager.arrayAdapter = adapter
 
         manager.pullToRefresh!!.setOnRefreshListener(OnRefreshListener {
-            if (contentType != FavoritesKt.TYPE && !manager.isOnline()) {
+            // Избранное и лента хранятся на устройстве, им сеть не обязательна
+            if (contentType != FavoritesKt.TYPE && contentType != CatalogKt.FEED && !manager.isOnline()) {
                 Toast.makeText(view.context, R.string.no_internet, Toast.LENGTH_SHORT).show()
                 manager.pullToRefresh!!.isRefreshing = false
                 return@OnRefreshListener

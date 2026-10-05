@@ -1,7 +1,7 @@
 <resources>
 
-    <!-- Приложение всегда тёмное: на тёмном фоне обои смотрятся лучше -->
-    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+    <!-- Цвета светлой темы лежат в values, тёмной — в values-night -->
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorOnPrimary">@color/colorWhite</item>
         <item name="colorPrimaryContainer">@color/colorPrimaryContainer</item>

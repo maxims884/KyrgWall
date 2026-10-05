@@ -1,6 +1,8 @@
 package kg.black13.kyrgyzstanwallpaper
 
+import android.app.Activity
 import android.app.WallpaperManager
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.graphics.Bitmap
 import android.content.ContentValues
@@ -115,10 +117,25 @@ object PictureActionsKt {
             intent.putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_text))
             intent.clipData = ClipData.newRawUri(null, uri)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            Intent.createChooser(intent, context.getString(R.string.share_title))
+            intent
         } catch (e: IOException) {
             e.printStackTrace()
             null
+        }
+    }
+
+    /** Открывает окно "Поделиться" или, если просили, сразу WhatsApp */
+    fun share(activity: Activity, intent: Intent, toWhatsApp: Boolean) {
+        val chooser = Intent.createChooser(intent, activity.getString(R.string.share_title))
+        if (!toWhatsApp) {
+            activity.startActivity(chooser)
+            return
+        }
+        try {
+            activity.startActivity(Intent(intent).setPackage("com.whatsapp"))
+        } catch (e: ActivityNotFoundException) {
+            // WhatsApp не установлен
+            activity.startActivity(chooser)
         }
     }
 

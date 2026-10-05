@@ -16,8 +16,8 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.nativead.NativeAd
 
 object AdsKt {
-    // Межстраничная после каждого 2-го действия с картинкой (установка, сохранение, отправка)
-    private const val ACTIONS_PER_AD = 2
+    // Межстраничная после каждого 3-го действия с картинкой (установка, сохранение, отправка)
+    private const val ACTIONS_PER_AD = 3
     // ...и на каждое 6-е открытие картинки, но не чаще раза в минуту
     private const val OPENS_PER_AD = 6
     private const val MIN_INTERVAL_MS = 60_000L

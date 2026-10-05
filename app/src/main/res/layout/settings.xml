@@ -15,6 +15,7 @@
         android:background="@color/colorBackground"
         app:navigationContentDescription="@string/back"
         app:navigationIcon="@drawable/ic_back"
+        app:navigationIconTint="@color/colorOnSurface"
         app:title="@string/action_settings" />
 
     <ScrollView
@@ -55,6 +56,7 @@
                     android:id="@+id/sourceFavorites"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="0dp"
+                    android:maxLines="2"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/settings_auto_source_favorites" />
@@ -63,6 +65,7 @@
                     android:id="@+id/sourceAll"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="0dp"
+                    android:maxLines="2"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/settings_auto_source_all" />
@@ -77,6 +80,65 @@
             <TextView
                 style="@style/SettingsHint"
                 android:text="@string/settings_weekly_hint" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchReminder"
+                style="@style/SettingsTitle"
+                android:layout_marginTop="20dp"
+                android:text="@string/settings_reminder" />
+
+            <TextView
+                style="@style/SettingsHint"
+                android:text="@string/settings_reminder_hint" />
+
+            <TextView
+                style="@style/SettingsSection"
+                android:text="@string/settings_section_theme" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/themeMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <Button
+                    android:id="@+id/themeSystem"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:maxLines="2"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/theme_system" />
+
+                <Button
+                    android:id="@+id/themeLight"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:maxLines="2"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/theme_light" />
+
+                <Button
+                    android:id="@+id/themeDark"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:maxLines="2"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/theme_dark" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <TextView
+                style="@style/SettingsSection"
+                android:text="@string/settings_section_language" />
+
+            <Button
+                android:id="@+id/btnLanguage"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
             <TextView
                 style="@style/SettingsSection"
