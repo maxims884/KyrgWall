@@ -60,6 +60,7 @@
     <string name="lang_ru" translatable="false">Русский</string>
     <string name="lang_ky" translatable="false">Кыргызча</string>
     <string name="lang_en" translatable="false">English</string>
+    <string name="whatsapp" translatable="false">WhatsApp</string>
     <string name="settings_section_rate">Оценить</string>
     <string name="settings_rate">Оцените приложение</string>
     <string name="settings_section_purchases">Покупки в приложении</string>
@@ -71,4 +72,25 @@
     <string name="weekly_channel">Обои недели</string>
     <string name="weekly_title">Обои недели</string>
     <string name="weekly_text">Новая картинка для вашего экрана</string>
+    <string name="search">Поиск</string>
+    <string name="search_hint">Горы, Нооруз, лошади…</string>
+    <string name="search_empty">Ничего не найдено.\nПопробуйте другое слово.</string>
+    <string name="card_with_name">Открытка с именем</string>
+    <string name="card_name_hint">Имя или поздравление</string>
+    <string name="card_text_placeholder">Ваш текст</string>
+    <string name="card_text_size">Размер текста</string>
+    <string name="card_drag_hint">Текст можно передвинуть пальцем</string>
+    <string name="settings_holidays">Открытки к праздникам</string>
+    <string name="settings_holidays_hint">Напомним за день до праздника</string>
+    <string name="holiday_channel">Праздники</string>
+    <string name="holiday_title">%1$s — открытки готовы</string>
+    <string name="holiday_text">Поздравьте близких открыткой с именем</string>
+    <string name="holiday_new_year">Новый год</string>
+    <string name="holiday_feb23">23 февраля</string>
+    <string name="holiday_mar8">8 Марта</string>
+    <string name="holiday_nooruz">Нооруз</string>
+    <string name="holiday_victory">День Победы</string>
+    <string name="holiday_independence">День независимости</string>
+    <string name="holiday_orozo_ait">Орозо айт</string>
+    <string name="holiday_kurman_ait">Курман айт</string>
 </resources>

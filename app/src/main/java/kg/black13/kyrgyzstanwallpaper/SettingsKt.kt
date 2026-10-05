@@ -50,6 +50,7 @@ class SettingsKt : Fragment() {
         setupAutoWallpaper(view)
         setupWeekly(view)
         setupReminder(view)
+        setupHolidays(view)
         setupTheme(view)
         setupLanguage(view)
 
@@ -136,6 +137,16 @@ class SettingsKt : Fragment() {
         switchReminder.isChecked = PrefsKt.isReminder(context) && hasNotificationPermission()
         switchReminder.setOnCheckedChangeListener { _, checked ->
             PrefsKt.setReminder(context, checked)
+            SchedulerKt.sync(context)
+        }
+    }
+
+    private fun setupHolidays(view: View) {
+        val context = requireContext()
+        val switchHolidays = view.findViewById<MaterialSwitch>(R.id.switchHolidays)
+        switchHolidays.isChecked = PrefsKt.isHolidays(context) && hasNotificationPermission()
+        switchHolidays.setOnCheckedChangeListener { _, checked ->
+            PrefsKt.setHolidays(context, checked)
             SchedulerKt.sync(context)
         }
     }

@@ -91,6 +91,16 @@
                 style="@style/SettingsHint"
                 android:text="@string/settings_reminder_hint" />
 
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchHolidays"
+                style="@style/SettingsTitle"
+                android:layout_marginTop="20dp"
+                android:text="@string/settings_holidays" />
+
+            <TextView
+                style="@style/SettingsHint"
+                android:text="@string/settings_holidays_hint" />
+
             <TextView
                 style="@style/SettingsSection"
                 android:text="@string/settings_section_theme" />

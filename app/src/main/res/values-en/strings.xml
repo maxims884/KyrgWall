@@ -61,4 +61,25 @@
     <string name="weekly_channel">Wallpaper of the week</string>
     <string name="weekly_title">Wallpaper of the week</string>
     <string name="weekly_text">A new picture for your screen</string>
+    <string name="search">Search</string>
+    <string name="search_hint">Mountains, Nooruz, horses…</string>
+    <string name="search_empty">Nothing found.\nTry another word.</string>
+    <string name="card_with_name">Card with a name</string>
+    <string name="card_name_hint">Name or greeting</string>
+    <string name="card_text_placeholder">Your text</string>
+    <string name="card_text_size">Text size</string>
+    <string name="card_drag_hint">Drag the text with your finger</string>
+    <string name="settings_holidays">Holiday cards</string>
+    <string name="settings_holidays_hint">We\'ll remind you a day before the holiday</string>
+    <string name="holiday_channel">Holidays</string>
+    <string name="holiday_title">%1$s — cards are ready</string>
+    <string name="holiday_text">Send your loved ones a card with their name</string>
+    <string name="holiday_new_year">New Year</string>
+    <string name="holiday_feb23">February 23</string>
+    <string name="holiday_mar8">March 8</string>
+    <string name="holiday_nooruz">Nooruz</string>
+    <string name="holiday_victory">Victory Day</string>
+    <string name="holiday_independence">Independence Day</string>
+    <string name="holiday_orozo_ait">Orozo Ait</string>
+    <string name="holiday_kurman_ait">Kurman Ait</string>
 </resources>

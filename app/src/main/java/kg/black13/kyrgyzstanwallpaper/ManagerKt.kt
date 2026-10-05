@@ -50,6 +50,16 @@ class ManagerKt  constructor() {
             onItemsChanged()
             return
         }
+        if (type.startsWith(SearchKt.PREFIX)) {
+            loading = true
+            CatalogKt.load(context!!) { pictures ->
+                if (type != currentType) return@load
+                loading = false
+                paginationList.addAll(SearchKt.filter(pictures, type.removePrefix(SearchKt.PREFIX)))
+                onItemsChanged()
+            }
+            return
+        }
         if (type == CatalogKt.FEED) {
             // Лента: все категории вперемешку, при каждом открытии в новом порядке
             loading = true
@@ -82,7 +92,8 @@ class ManagerKt  constructor() {
     fun loadNextItems() {
         val type = currentType
         val last = lastVisible
-        if (type == FavoritesKt.TYPE || type == CatalogKt.FEED || last == null || loading) return
+        if (type == FavoritesKt.TYPE || type == CatalogKt.FEED || type.startsWith(SearchKt.PREFIX)
+            || last == null || loading) return
         loading = true
         db.collection(type)
                 .orderBy("url")

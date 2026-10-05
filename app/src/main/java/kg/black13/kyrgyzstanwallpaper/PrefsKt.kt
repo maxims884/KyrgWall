@@ -24,6 +24,19 @@ object PrefsKt {
     fun setReminder(context: Context, value: Boolean) =
         sp(context).edit().putBoolean("reminder", value).apply()
 
+    fun isHolidays(context: Context) = sp(context).getBoolean("holidays", true)
+    fun setHolidays(context: Context, value: Boolean) =
+        sp(context).edit().putBoolean("holidays", value).apply()
+
+    // Ключ "праздник_дата", про который уже напомнили
+    fun isHolidayNotified(context: Context, key: String) =
+        sp(context).getStringSet("holidaysNotified", emptySet())!!.contains(key)
+    fun setHolidayNotified(context: Context, key: String) {
+        val keys = HashSet(sp(context).getStringSet("holidaysNotified", emptySet())!!)
+        keys.add(key)
+        sp(context).edit().putStringSet("holidaysNotified", keys).apply()
+    }
+
     fun getLastAutoUrl(context: Context) = sp(context).getString("lastAutoUrl", null)
     fun setLastAutoUrl(context: Context, value: String?) =
         sp(context).edit().putString("lastAutoUrl", value).apply()

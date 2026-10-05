@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +27,8 @@ class GalleryKt : Fragment() {
     var viewPager: ViewPager? = null
     private var btnFavorite: MaterialButton? = null
     private var btnSet: MaterialButton? = null
+    private var btnEdit: View? = null
+    private var btnSave: View? = null
     private val scope = MainScope()
     private val storagePermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -59,6 +62,11 @@ class GalleryKt : Fragment() {
 
         btnFavorite = view.findViewById(R.id.btnFavorite)
         btnSet = view.findViewById(R.id.btnSet)
+        btnEdit = view.findViewById(R.id.btnEdit)
+        btnSave = view.findViewById(R.id.btnSave)
+        btnEdit!!.setOnClickListener {
+            currentPicture()?.let { (activity as MainActivityKt).openCardEditor(it) }
+        }
         updateButtons()
         setupSwipeDismiss(view)
         (activity as MainActivityKt).setViewerMode(true)
@@ -132,11 +140,34 @@ class GalleryKt : Fragment() {
         btnFavorite?.setIconResource(if (favorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border)
 
         val card = isCard()
-        btnSet?.setText(if (card) R.string.send_whatsapp else R.string.set_wallpaper)
+        // У открытки вместо сохранения — открытка с именем
+        btnEdit?.visibility = if (card) View.VISIBLE else View.GONE
+        btnSave?.visibility = if (card) View.GONE else View.VISIBLE
+        btnSet?.setText(if (card) R.string.whatsapp else R.string.set_wallpaper)
         btnSet?.setIconResource(if (card) R.drawable.ic_share else R.drawable.ic_wallpaper)
+        btnSet?.post { fitSetButton() }
         btnSet?.backgroundTintList = ContextCompat.getColorStateList(
             requireContext(), if (card) R.color.colorWhatsApp else R.color.colorPrimary
         )
+    }
+
+    /**
+     * На узких экранах надпись главной кнопки не влезает в одну строку.
+     * Тогда сначала убираем иконку, а если и этого мало — уменьшаем шрифт
+     */
+    private fun fitSetButton() {
+        val button = btnSet ?: return
+        if (button.width == 0) return
+        val text = button.text.toString()
+        val free = button.width - button.paddingLeft - button.paddingRight
+        var textSize = 16f
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize)
+        val iconSpace = button.iconSize + button.iconPadding
+        if (button.paint.measureText(text) + iconSpace > free) button.icon = null
+        while (button.paint.measureText(text) > free && textSize > 12f) {
+            textSize -= 1f
+            button.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize)
+        }
     }
 
     private fun chooseWallpaperTarget() {

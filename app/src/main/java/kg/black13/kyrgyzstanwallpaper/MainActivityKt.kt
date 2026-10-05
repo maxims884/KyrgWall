@@ -9,6 +9,12 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.content.res.Configuration
+import android.os.Handler
+import android.os.Looper
+import android.view.MenuItem
+import android.view.View
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.widget.SearchView
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.activity.result.contract.ActivityResultContracts
@@ -92,6 +98,8 @@ class MainActivityKt: AppCompatActivity() {
         })
         showCategory(tabTypes[startTab])
         if (picture != null) openPicture(picture)
+        openTypeFrom(intent)
+        setupSearch()
 
         AdsKt.init(this, binding.adContainer)
         PrefsKt.markOpened(this)
@@ -116,8 +124,85 @@ class MainActivityKt: AppCompatActivity() {
         controller.isAppearanceLightNavigationBars = !viewer && !night
     }
 
+    private fun setupSearch() {
+        val searchItem = binding.toolbar.menu.findItem(R.id.action_search)
+        val searchView = searchItem.actionView as SearchView
+        searchView.queryHint = getString(R.string.search_hint)
+        searchView.maxWidth = Int.MAX_VALUE
+        val handler = Handler(Looper.getMainLooper())
+        var pending: Runnable? = null
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String): Boolean {
+                pending?.let { handler.removeCallbacks(it) }
+                search(query)
+                searchView.clearFocus()
+                return true
+            }
+
+            // Ищем по мере ввода, но с небольшой паузой, чтобы не перерисовывать сетку на каждую букву
+            override fun onQueryTextChange(query: String): Boolean {
+                pending?.let { handler.removeCallbacks(it) }
+                pending = Runnable { search(query) }
+                handler.postDelayed(pending!!, 350)
+                return true
+            }
+        })
+
+        // "Назад" сначала закрывает открытый поверх экран, потом поиск
+        val back = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                if (supportFragmentManager.backStackEntryCount > 0) supportFragmentManager.popBackStack()
+                else searchItem.collapseActionView()
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, back)
+        searchItem.setOnActionExpandListener(object : MenuItem.OnActionExpandListener {
+            override fun onMenuItemActionExpand(item: MenuItem): Boolean {
+                back.isEnabled = true
+                binding.tabs.visibility = View.GONE
+                return true
+            }
+
+            override fun onMenuItemActionCollapse(item: MenuItem): Boolean {
+                back.isEnabled = false
+                pending?.let { handler.removeCallbacks(it) }
+                binding.tabs.visibility = View.VISIBLE
+                showCategory(tabTypes[binding.tabs.selectedTabPosition])
+                return true
+            }
+        })
+    }
+
+    private fun search(query: String) {
+        if (query.isBlank()) return
+        ManagerKt.getInstance()?.logEvent("search")
+        showCategory(SearchKt.PREFIX + query.trim())
+    }
+
+    // Уведомление о празднике открывает вкладку с открытками
+    private fun openTypeFrom(intent: Intent?) {
+        val type = intent?.getStringExtra(NotificationsKt.EXTRA_OPEN_TYPE) ?: return
+        val tab = tabTypes.indexOf(type)
+        if (tab < 0) return
+        ManagerKt.getInstance()?.logEvent("open_notification")
+        binding.tabs.selectTab(binding.tabs.getTabAt(tab))
+    }
+
+    fun openCardEditor(picture: PictureKt) {
+        supportFragmentManager.beginTransaction()
+            .add(R.id.overlay, CardEditorKt.newInstance(picture))
+            .addToBackStack(null)
+            .commit()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (intent.hasExtra(NotificationsKt.EXTRA_OPEN_TYPE)) {
+            supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            openTypeFrom(intent)
+            return
+        }
         val picture = pictureFrom(intent) ?: return
         supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
         // Картинка из уведомления показывается первой в ленте.

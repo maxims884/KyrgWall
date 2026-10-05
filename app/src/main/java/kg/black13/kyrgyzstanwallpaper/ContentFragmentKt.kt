@@ -39,9 +39,10 @@ class ContentFragmentKt : Fragment() {
         manager.pgsBar!!.visibility = View.VISIBLE
         val emptyText = view.findViewById<TextView>(R.id.emptyText)
         emptyText.setText(
-            when (contentType) {
-                FavoritesKt.TYPE -> R.string.favorites_empty
-                CatalogKt.CARDS -> R.string.cards_empty
+            when {
+                contentType == FavoritesKt.TYPE -> R.string.favorites_empty
+                contentType == CatalogKt.CARDS -> R.string.cards_empty
+                contentType.startsWith(SearchKt.PREFIX) -> R.string.search_empty
                 else -> R.string.load_failed
             }
         )
@@ -65,7 +66,8 @@ class ContentFragmentKt : Fragment() {
 
         manager.pullToRefresh!!.setOnRefreshListener(OnRefreshListener {
             // Избранное и лента хранятся на устройстве, им сеть не обязательна
-            if (contentType != FavoritesKt.TYPE && contentType != CatalogKt.FEED && !manager.isOnline()) {
+            if (contentType != FavoritesKt.TYPE && contentType != CatalogKt.FEED
+                && !contentType.startsWith(SearchKt.PREFIX) && !manager.isOnline()) {
                 Toast.makeText(view.context, R.string.no_internet, Toast.LENGTH_SHORT).show()
                 manager.pullToRefresh!!.isRefreshing = false
                 return@OnRefreshListener

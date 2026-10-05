@@ -43,6 +43,7 @@ object CatalogKt {
                 p.url = o.optString("url")
                 p.urlSmall = o.optString("urlSmall")
                 p.type = o.optString("type")
+                p.tags = o.optString("tags")
                 items.add(p)
             }
         } catch (e: Exception) {
@@ -55,7 +56,10 @@ object CatalogKt {
     private fun save(context: Context, items: List<PictureKt>) {
         val array = JSONArray()
         for (p in items) {
-            array.put(JSONObject().put("url", p.url).put("urlSmall", p.urlSmall).put("type", p.type))
+            array.put(
+                JSONObject().put("url", p.url).put("urlSmall", p.urlSmall).put("type", p.type)
+                    .put("tags", p.tagList().joinToString(","))
+            )
         }
         file(context).writeText(array.toString())
     }

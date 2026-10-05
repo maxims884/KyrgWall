@@ -27,6 +27,7 @@ object SchedulerKt {
     private const val AUTO = "auto_wallpaper"
     private const val WEEKLY = "weekly_wallpaper"
     private const val REMINDER = "reminder"
+    private const val HOLIDAYS = "holidays"
 
     /** Приводит фоновые задачи в соответствие с настройками */
     fun sync(context: Context) {
@@ -35,11 +36,13 @@ object SchedulerKt {
         schedule(context, WEEKLY, PrefsKt.isWeekly(context), WeeklyWallpaperWorkerKt::class.java, 7, 7)
         // Раз в сутки проверяем, давно ли пользователь заходил
         schedule(context, REMINDER, PrefsKt.isReminder(context), ReminderWorkerKt::class.java, 1, 1)
+        // Праздники проверяем каждые 6 часов, чтобы попасть в дневное время
+        schedule(context, HOLIDAYS, PrefsKt.isHolidays(context), HolidayWorkerKt::class.java, 0, 0, 6)
     }
 
     private fun schedule(
         context: Context, name: String, enabled: Boolean,
-        worker: Class<out ListenableWorker>, everyDays: Long, delayDays: Long
+        worker: Class<out ListenableWorker>, everyDays: Long, delayDays: Long, everyHours: Long = 0
     ) {
         val workManager = WorkManager.getInstance(context)
         if (!enabled) {
@@ -47,7 +50,7 @@ object SchedulerKt {
             return
         }
         val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-        val request = PeriodicWorkRequest.Builder(worker, everyDays, TimeUnit.DAYS)
+        val request = PeriodicWorkRequest.Builder(worker, everyDays * 24 + everyHours, TimeUnit.HOURS)
             .setInitialDelay(delayDays, TimeUnit.DAYS)
             .setConstraints(network)
             .build()
@@ -70,6 +73,7 @@ object NotificationsKt {
     const val EXTRA_URL = "picture_url"
     const val EXTRA_URL_SMALL = "picture_url_small"
     const val EXTRA_TYPE = "picture_type"
+    const val EXTRA_OPEN_TYPE = "open_type"
     // Если человек не заходит дольше месяца, перестаём его беспокоить совсем
     private val GIVE_UP_AFTER = TimeUnit.DAYS.toMillis(30)
 
@@ -84,11 +88,23 @@ object NotificationsKt {
         return lastOpen == 0L || System.currentTimeMillis() - lastOpen < GIVE_UP_AFTER
     }
 
-    /** Уведомление с картинкой; нажатие открывает её в приложении. Вызывать не из главного потока */
+    /** Уведомление со случайными обоями; нажатие открывает их в приложении. Вызывать не из главного потока */
     fun showPicture(appContext: Context, id: Int, channel: String, channelName: Int, title: Int, text: Int): Boolean {
         val picture = SchedulerKt.randomWallpaper(appContext, null) ?: return false
-        val bitmap = Glide.with(appContext).asBitmap().load(picture.url).submit(720, 720).get()
         // Тексты уведомления на языке, выбранном в приложении
+        val context = LanguageKt.localized(appContext)
+        return show(appContext, id, channel, channelName, context.getString(title), context.getString(text), picture, null)
+    }
+
+    /**
+     * Уведомление с картинкой. Нажатие открывает вкладку openType, а если её нет — саму картинку.
+     * Вызывать не из главного потока
+     */
+    fun show(
+        appContext: Context, id: Int, channel: String, channelName: Int,
+        title: String, text: String, picture: PictureKt?, openType: String?
+    ): Boolean {
+        val bitmap = picture?.let { Glide.with(appContext).asBitmap().load(it.url).submit(720, 720).get() }
         val context = LanguageKt.localized(appContext)
 
         if (Build.VERSION.SDK_INT >= 26) {
@@ -100,23 +116,28 @@ object NotificationsKt {
         }
         val intent = Intent(context, MainActivityKt::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            .putExtra(EXTRA_URL, picture.url)
-            .putExtra(EXTRA_URL_SMALL, picture.urlSmall)
-            .putExtra(EXTRA_TYPE, picture.type)
+        if (openType != null) {
+            intent.putExtra(EXTRA_OPEN_TYPE, openType)
+        } else if (picture != null) {
+            intent.putExtra(EXTRA_URL, picture.url)
+                .putExtra(EXTRA_URL_SMALL, picture.urlSmall)
+                .putExtra(EXTRA_TYPE, picture.type)
+        }
         val pendingIntent = PendingIntent.getActivity(
             context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(context, channel)
+        val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_wallpaper)
-            .setContentTitle(context.getString(title))
-            .setContentText(context.getString(text))
-            .setLargeIcon(bitmap)
-            .setStyle(NotificationCompat.BigPictureStyle().bigPicture(bitmap).bigLargeIcon(null as Bitmap?))
+            .setContentTitle(title)
+            .setContentText(text)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
-            .build()
-        NotificationManagerCompat.from(context).notify(id, notification)
+        if (bitmap != null) {
+            builder.setLargeIcon(bitmap)
+                .setStyle(NotificationCompat.BigPictureStyle().bigPicture(bitmap).bigLargeIcon(null as Bitmap?))
+        }
+        NotificationManagerCompat.from(context).notify(id, builder.build())
         PrefsKt.markNotified(context)
         return true
     }

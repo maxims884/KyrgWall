@@ -61,4 +61,25 @@
     <string name="weekly_channel">Жуманын тушкагазы</string>
     <string name="weekly_title">Жуманын тушкагазы</string>
     <string name="weekly_text">Экраныңыз үчүн жаңы сүрөт</string>
+    <string name="search">Издөө</string>
+    <string name="search_hint">Тоолор, Нооруз, аттар…</string>
+    <string name="search_empty">Эч нерсе табылган жок.\nБашка сөз менен издеп көрүңүз.</string>
+    <string name="card_with_name">Ысымы жазылган открытка</string>
+    <string name="card_name_hint">Ысым же куттуктоо</string>
+    <string name="card_text_placeholder">Сиздин текст</string>
+    <string name="card_text_size">Тексттин өлчөмү</string>
+    <string name="card_drag_hint">Текстти манжа менен жылдырса болот</string>
+    <string name="settings_holidays">Майрамдык открыткалар</string>
+    <string name="settings_holidays_hint">Майрамдан бир күн мурун эскертебиз</string>
+    <string name="holiday_channel">Майрамдар</string>
+    <string name="holiday_title">%1$s — открыткалар даяр</string>
+    <string name="holiday_text">Жакындарыңызды ысымы жазылган открытка менен куттуктаңыз</string>
+    <string name="holiday_new_year">Жаңы жыл</string>
+    <string name="holiday_feb23">23-февраль</string>
+    <string name="holiday_mar8">8-Март</string>
+    <string name="holiday_nooruz">Нооруз</string>
+    <string name="holiday_victory">Жеңиш күнү</string>
+    <string name="holiday_independence">Эгемендүүлүк күнү</string>
+    <string name="holiday_orozo_ait">Орозо айт</string>
+    <string name="holiday_kurman_ait">Курман айт</string>
 </resources>
