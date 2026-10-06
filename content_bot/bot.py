@@ -41,6 +41,7 @@ class Store:
             os.makedirs(OUT, exist_ok=True)
             self.state_path = os.path.join(OUT, "state.json")
             self.used = set(json.load(open(self.state_path))) if os.path.exists(self.state_path) else set()
+            self.last_daily = None
             return
         import firebase_admin
         from firebase_admin import credentials, firestore, storage
@@ -54,7 +55,14 @@ class Store:
         # Какие источники уже использованы, чтобы не загружать одно и то же дважды
         self.state = self.db.collection("bot").document("state")
         snapshot = self.state.get()
-        self.used = set(snapshot.to_dict().get("used", [])) if snapshot.exists else set()
+        data = snapshot.to_dict() if snapshot.exists else {}
+        self.used = set(data.get("used", []))
+        # Дата последнего ежедневного запуска по расписанию
+        self.last_daily = data.get("lastDaily")
+
+    def mark_daily(self, day):
+        if not self.dry_run:
+            self.state.set({"lastDaily": day.isoformat()}, merge=True)
 
     def _upload(self, path, data):
         blob = self.bucket.blob(path)
@@ -180,10 +188,18 @@ def main():
     parser.add_argument("command", choices=["daily", "daily-cards", "seed-cards", "wallpapers"])
     parser.add_argument("--count", type=int, default=30)
     parser.add_argument("--dry-run", action="store_true")
+    # Запуск по расписанию: не больше одного раза в день. GitHub может задержать или пропустить
+    # запуск, поэтому расписаний два, и второй выходит сразу, если первый уже отработал
+    parser.add_argument("--scheduled", action="store_true")
     args = parser.parse_args()
 
     store = Store(args.dry_run)
-    today = datetime.date.today()
+    # Дата по Бишкеку (UTC+6): серверы GitHub живут по UTC
+    today = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=6)).date()
+
+    if args.scheduled and store.last_daily == today.isoformat():
+        print("сегодня (%s) бот уже отработал, пропускаю" % today)
+        return 0
 
     if args.command in ("daily", "daily-cards"):
         # daily-cards — без обоев: пока у пользователей старая версия приложения,
@@ -192,6 +208,9 @@ def main():
             add_wallpaper(store, today)
         for i, occasion in enumerate(texts.occasions_for(today)):
             add_card(store, occasion, today, i)
+        # Отмечаем день только после успешной загрузки: если запуск упал, второй попробует снова
+        if args.scheduled:
+            store.mark_daily(today)
     elif args.command == "wallpapers":
         for i in range(args.count):
             add_wallpaper(store, today)

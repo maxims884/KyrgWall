@@ -3,8 +3,11 @@
 name: Daily content
 
 on:
+  # GitHub запускает расписания с задержкой, а в начале часа может и пропустить запуск.
+  # Поэтому время "некруглое" и запусков два: второй ничего не добавит, если первый отработал
   schedule:
-    - cron: "0 3 * * *"   # 09:00 по Бишкеку
+    - cron: "17 2 * * *"   # 08:17 по Бишкеку
+    - cron: "43 5 * * *"   # 11:43 по Бишкеку, запасной
   workflow_dispatch:
     inputs:
       command:
@@ -34,4 +37,6 @@ jobs:
           # (например, daily-cards, пока не вышло обновление приложения), иначе daily
           COMMAND: ${{ github.event.inputs.command || vars.DAILY_COMMAND || 'daily' }}
           COUNT: ${{ github.event.inputs.count || '30' }}
-        run: python bot.py "$COMMAND" --count "$COUNT"
+          # По расписанию бот работает не больше раза в день, ручной запуск срабатывает всегда
+          SCHEDULED: ${{ github.event_name == 'schedule' && '--scheduled' || '' }}
+        run: python bot.py "$COMMAND" --count "$COUNT" $SCHEDULED
