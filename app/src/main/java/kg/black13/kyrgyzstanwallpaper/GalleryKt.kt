@@ -215,6 +215,15 @@ class GalleryKt : Fragment() {
             Toast.makeText(context, R.string.lock_not_supported, Toast.LENGTH_SHORT).show()
             return
         }
+        // Широкая картинка целиком на экран не помещается: даём выбрать, какую часть поставить
+        val page = viewPager!!.findViewWithTag<View>(viewPager!!.currentItem)
+        val drawable = page?.findViewById<TouchImageView>(R.id.imgDisplay)?.drawable
+        if (drawable != null && drawable.intrinsicHeight > 0 &&
+            drawable.intrinsicWidth / drawable.intrinsicHeight.toFloat() > WallpaperCropKt.WIDE_ASPECT
+        ) {
+            (activity as MainActivityKt).openWallpaperCrop(url, target)
+            return
+        }
         scope.launch {
             val done = withContext(Dispatchers.IO) {
                 try {

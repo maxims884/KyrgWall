@@ -67,8 +67,9 @@
     <string name="card_with_name">Card with a name</string>
     <string name="card_name_hint">Name or greeting</string>
     <string name="card_text_placeholder">Your text</string>
-    <string name="card_text_size">Text size</string>
-    <string name="card_drag_hint">Drag the text with your finger</string>
+    <string name="card_handle_width">Change text width</string>
+    <string name="card_handle_size">Change text size</string>
+    <string name="card_drag_hint">Drag the text; pull the circles to stretch and resize it</string>
     <string name="settings_holidays">Holiday cards</string>
     <string name="settings_holidays_hint">We\'ll remind you a day before the holiday</string>
     <string name="holiday_channel">Holidays</string>
@@ -82,4 +83,7 @@
     <string name="holiday_independence">Independence Day</string>
     <string name="holiday_orozo_ait">Orozo Ait</string>
     <string name="holiday_kurman_ait">Kurman Ait</string>
+    <string name="crop_title">Choose the area</string>
+    <string name="crop_hint">Move and zoom the picture — the framed part becomes your wallpaper</string>
+    <string name="cancel">Cancel</string>
 </resources>

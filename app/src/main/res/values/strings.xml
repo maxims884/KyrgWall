@@ -78,8 +78,9 @@
     <string name="card_with_name">Открытка с именем</string>
     <string name="card_name_hint">Имя или поздравление</string>
     <string name="card_text_placeholder">Ваш текст</string>
-    <string name="card_text_size">Размер текста</string>
-    <string name="card_drag_hint">Текст можно передвинуть пальцем</string>
+    <string name="card_handle_width">Изменить ширину текста</string>
+    <string name="card_handle_size">Изменить размер текста</string>
+    <string name="card_drag_hint">Текст можно двигать, а за кружки — растягивать и менять размер</string>
     <string name="settings_holidays">Открытки к праздникам</string>
     <string name="settings_holidays_hint">Напомним за день до праздника</string>
     <string name="holiday_channel">Праздники</string>
@@ -93,4 +94,7 @@
     <string name="holiday_independence">День независимости</string>
     <string name="holiday_orozo_ait">Орозо айт</string>
     <string name="holiday_kurman_ait">Курман айт</string>
+    <string name="crop_title">Выберите область</string>
+    <string name="crop_hint">Двигайте и увеличивайте картинку — обоями станет то, что в рамке</string>
+    <string name="cancel">Отмена</string>
 </resources>

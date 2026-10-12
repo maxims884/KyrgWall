@@ -4,7 +4,9 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.Layout
@@ -12,21 +14,24 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextWatcher
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.slider.Slider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -35,13 +40,26 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Открытка с именем: пользователь пишет текст поверх картинки, двигает его пальцем,
- * выбирает цвет и размер и отправляет готовую картинку.
+ * Открытка с именем: пользователь пишет текст поверх картинки, двигает и растягивает
+ * блок текста, выбирает шрифт и цвет и отправляет готовую картинку.
  */
 class CardEditorKt : Fragment() {
     companion object {
         private const val ARG_URL = "url"
         private const val ARG_TYPE = "type"
+        private const val START_SIZE_SP = 32f
+        private const val MIN_SIZE_SP = 12f
+        private const val MAX_SIZE_SP = 110f
+
+        // Шрифты из res/font; во всех есть кыргызские буквы ң, ө, ү. Первым идёт системный
+        private val FONTS = listOf(
+            R.font.montserrat_bold, R.font.lobster, R.font.pacifico,
+            R.font.caveat_bold, R.font.playfair_bold, R.font.comfortaa_bold
+        )
+        private val COLORS = listOf(
+            0xFFFFFFFF, 0xFF212121, 0xFFFFD54F, 0xFFFF9800, 0xFFE53935, 0xFFF06292,
+            0xFFAB47BC, 0xFF1E88E5, 0xFF4FC3F7, 0xFF26A69A, 0xFF66BB6A, 0xFF8D6E63
+        ).map { it.toInt() }
 
         fun newInstance(picture: PictureKt): CardEditorKt {
             val fragment = CardEditorKt()
@@ -55,16 +73,20 @@ class CardEditorKt : Fragment() {
 
     private val scope = MainScope()
     private lateinit var frame: FrameLayout
+    private lateinit var box: View
     private lateinit var text: TextView
     private var imageWidth = 0
     private var imageHeight = 0
-    // Текст пока не двигали — держим его внизу по центру при любом размере
+    // Блок пока не двигали — держим его внизу по центру при любом размере
     private var moved = false
+    // Ширину блока задали ручкой; до этого он подстраивается под текст
+    private var fixedWidth = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.card_editor, container, false)
         val url = requireArguments().getString(ARG_URL)
         frame = view.findViewById(R.id.cardFrame)
+        box = view.findViewById(R.id.textBox)
         text = view.findViewById(R.id.cardText)
         val image = view.findViewById<ImageView>(R.id.cardImage)
         val previewArea = view.findViewById<View>(R.id.previewArea)
@@ -91,10 +113,20 @@ class CardEditorKt : Fragment() {
         })
 
         setupText(view)
+        setupHandles(view)
+        setupFonts(view)
         setupColors(view)
         view.findViewById<View>(R.id.editorShare).setOnClickListener { send(false) }
         view.findViewById<View>(R.id.editorWhatsApp).setOnClickListener { send(true) }
         return view
+    }
+
+    private fun dp(value: Float): Float {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics)
+    }
+
+    private fun sp(value: Float): Float {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, resources.displayMetrics)
     }
 
     // Рамка открытки повторяет пропорции картинки и вписывается в свободное место
@@ -107,82 +139,178 @@ class CardEditorKt : Fragment() {
         params.width = (imageWidth * scale).toInt()
         params.height = (imageHeight * scale).toInt()
         frame.layoutParams = params
-        text.maxWidth = (params.width * 0.9f).toInt()
-        frame.post { placeText() }
+        if (!fixedWidth) text.maxWidth = (params.width * 0.9f).toInt()
+        frame.post { placeBox() }
     }
 
-    private fun placeText() {
-        if (moved) {
-            clampText()
-            return
+    private fun placeBox() {
+        if (!moved) {
+            box.x = (frame.width - box.width) / 2f
+            box.y = frame.height * 0.82f - box.height / 2f
         }
-        text.x = (frame.width - text.width) / 2f
-        text.y = frame.height * 0.85f - text.height / 2f
+        clampBox()
     }
 
-    // Текст не должен уезжать за края открытки
-    private fun clampText() {
-        text.x = text.x.coerceIn(0f, maxOf(0f, (frame.width - text.width).toFloat()))
-        text.y = text.y.coerceIn(0f, maxOf(0f, (frame.height - text.height).toFloat()))
+    // Текст не должен уезжать за края открытки. У блока вокруг текста есть поле под ручки,
+    // поэтому сам блок может немного выходить за край
+    private fun clampBox() {
+        val margin = dp(16f)
+        box.x = box.x.coerceIn(-margin, maxOf(-margin, frame.width - box.width + margin))
+        box.y = box.y.coerceIn(-margin, maxOf(-margin, frame.height - box.height + margin))
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupText(view: View) {
         text.hint = getString(R.string.card_text_placeholder)
         text.setHintTextColor(Color.argb(170, 255, 255, 255))
+        text.typeface = Typeface.DEFAULT_BOLD
+        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, START_SIZE_SP)
         val input = view.findViewById<TextView>(R.id.nameInput)
         input.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 text.text = s
-                text.post { placeText() }
+                box.post { placeBox() }
             }
         })
 
-        val slider = view.findViewById<Slider>(R.id.sizeSlider)
-        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, slider.value)
-        slider.addOnChangeListener { _, value, _ ->
-            text.setTextSize(TypedValue.COMPLEX_UNIT_SP, value)
-            text.post { placeText() }
-        }
-
+        // Блок двигается за сам текст
         var dx = 0f
         var dy = 0f
         text.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    dx = v.x - event.rawX
-                    dy = v.y - event.rawY
+                    dx = box.x - event.rawX
+                    dy = box.y - event.rawY
                     v.parent.requestDisallowInterceptTouchEvent(true)
                 }
                 MotionEvent.ACTION_MOVE -> {
                     moved = true
-                    v.x = event.rawX + dx
-                    v.y = event.rawY + dy
-                    clampText()
+                    box.x = event.rawX + dx
+                    box.y = event.rawY + dy
+                    clampBox()
                 }
             }
             true
         }
     }
 
-    private fun setupColors(view: View) {
-        val colors = mapOf(
-            R.id.colorWhite to Color.WHITE,
-            R.id.colorYellow to Color.rgb(255, 213, 79),
-            R.id.colorRed to Color.rgb(229, 57, 53),
-            R.id.colorDark to Color.rgb(33, 33, 33)
+    private fun setTextWidth(width: Int) {
+        fixedWidth = true
+        text.maxWidth = Int.MAX_VALUE
+        val params = text.layoutParams
+        params.width = width.coerceIn(dp(60f).toInt(), frame.width)
+        text.layoutParams = params
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupHandles(view: View) {
+        // Правая ручка меняет ширину блока: текст переносится по строкам
+        var startX = 0f
+        var startWidth = 0
+        view.findViewById<View>(R.id.handleWidth).setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.rawX
+                    startWidth = text.width
+                    v.parent.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    setTextWidth((startWidth + event.rawX - startX).toInt())
+                    box.post { clampBox() }
+                }
+            }
+            true
+        }
+
+        // Угловая ручка растягивает блок целиком: меняется размер шрифта
+        var startY = 0f
+        var startSize = 0f
+        view.findViewById<View>(R.id.handleScale).setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.rawX
+                    startY = event.rawY
+                    startSize = text.textSize
+                    startWidth = maxOf(text.width, 1)
+                    v.parent.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    // Блок растёт вслед за пальцем: на сколько увеличилась бы ширина, во столько и шрифт
+                    val delta = ((event.rawX - startX) + (event.rawY - startY)) / 2f
+                    val factor = (startWidth + delta * 2f) / startWidth
+                    val size = (startSize * factor).coerceIn(sp(MIN_SIZE_SP), sp(MAX_SIZE_SP))
+                    text.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
+                    if (fixedWidth) setTextWidth((startWidth * size / startSize).toInt())
+                    box.post { clampBox() }
+                }
+            }
+            true
+        }
+    }
+
+    // Обводка у выбранного шрифта и цвета
+    private fun chipBackground(fill: Int, selected: Boolean, oval: Boolean): GradientDrawable {
+        val drawable = GradientDrawable()
+        drawable.shape = if (oval) GradientDrawable.OVAL else GradientDrawable.RECTANGLE
+        if (!oval) drawable.cornerRadius = dp(12f)
+        drawable.setColor(fill)
+        val context = requireContext()
+        drawable.setStroke(
+            dp(if (selected) 3f else 1.5f).toInt(),
+            ContextCompat.getColor(context, if (selected) R.color.colorPrimary else R.color.colorOutline)
         )
-        for ((id, color) in colors) {
-            val swatch = view.findViewById<View>(id)
-            swatch.background.mutate().setTint(color)
-            swatch.setOnClickListener {
-                text.setTextColor(color)
-                // Тёмный текст лучше читается со светлой тенью
-                text.setShadowLayer(6f, 0f, 2f, if (color == colors[R.id.colorDark]) 0xCCFFFFFF.toInt() else 0xCC000000.toInt())
+        return drawable
+    }
+
+    private fun setupFonts(view: View) {
+        val context = requireContext()
+        val row = view.findViewById<LinearLayout>(R.id.fontRow)
+        val typefaces = listOf(Typeface.DEFAULT_BOLD) + FONTS.mapNotNull { ResourcesCompat.getFont(context, it) }
+        val fill = ContextCompat.getColor(context, R.color.colorSurfaceHigh)
+        val chips = ArrayList<TextView>()
+        for (typeface in typefaces) {
+            val chip = TextView(context)
+            chip.text = "Аа"
+            chip.typeface = typeface
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            chip.gravity = Gravity.CENTER
+            chip.setTextColor(ContextCompat.getColor(context, R.color.colorOnSurface))
+            val params = LinearLayout.LayoutParams(dp(60f).toInt(), dp(44f).toInt())
+            params.marginEnd = dp(8f).toInt()
+            row.addView(chip, params)
+            chips.add(chip)
+            chip.setOnClickListener {
+                text.typeface = typeface
+                for (other in chips) other.background = chipBackground(fill, other === chip, false)
+                box.post { placeBox() }
             }
         }
+        for (i in chips.indices) chips[i].background = chipBackground(fill, i == 0, false)
+    }
+
+    private fun setupColors(view: View) {
+        val context = requireContext()
+        val row = view.findViewById<LinearLayout>(R.id.colorRow)
+        val swatches = ArrayList<View>()
+        for (color in COLORS) {
+            val swatch = View(context)
+            val params = LinearLayout.LayoutParams(dp(38f).toInt(), dp(38f).toInt())
+            params.marginEnd = dp(10f).toInt()
+            row.addView(swatch, params)
+            swatches.add(swatch)
+            swatch.setOnClickListener {
+                text.setTextColor(color)
+                // Тёмный текст лучше читается со светлой тенью, светлый — с тёмной
+                val dark = ColorUtils.calculateLuminance(color) < 0.25
+                text.setShadowLayer(6f, 0f, 2f, if (dark) 0xCCFFFFFF.toInt() else 0xCC000000.toInt())
+                for (i in swatches.indices) {
+                    swatches[i].background = chipBackground(COLORS[i], swatches[i] === swatch, true)
+                }
+            }
+        }
+        for (i in swatches.indices) swatches[i].background = chipBackground(COLORS[i], i == 0, true)
     }
 
     private fun send(toWhatsApp: Boolean) {
@@ -193,7 +321,7 @@ class CardEditorKt : Fragment() {
         // Запоминаем положение текста относительно рамки, чтобы перенести его на полноразмерную картинку
         val snapshot = TextSnapshot(
             text.text.toString(), text.currentTextColor, text.textSize, text.typeface,
-            text.x + text.paddingLeft, text.y + text.paddingTop,
+            box.x + text.left + text.paddingLeft, box.y + text.top + text.paddingTop,
             (text.width - text.paddingLeft - text.paddingRight).toFloat(),
             text.shadowRadius, text.shadowDy, text.shadowColor, frame.width.toFloat()
         )
@@ -218,7 +346,7 @@ class CardEditorKt : Fragment() {
     }
 
     private class TextSnapshot(
-        val text: String, val color: Int, val size: Float, val typeface: android.graphics.Typeface?,
+        val text: String, val color: Int, val size: Float, val typeface: Typeface?,
         val x: Float, val y: Float, val width: Float,
         val shadowRadius: Float, val shadowDy: Float, val shadowColor: Int, val frameWidth: Float
     )

@@ -41,6 +41,14 @@ class ManagerKt  constructor() {
         }
     }
 
+    /** Очищает список картинок и сразу сообщает об этом сетке и просмотру */
+    fun clearItems() {
+        paginationList.clear()
+        lastVisible = null
+        arrayAdapter?.refresh()
+        customGalleryAdapter?.notifyDataSetChanged()
+    }
+
     fun loadFirstItems(type: String) {
         currentType = type
         lastVisible = null

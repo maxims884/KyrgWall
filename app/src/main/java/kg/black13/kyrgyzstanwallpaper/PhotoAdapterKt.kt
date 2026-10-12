@@ -23,7 +23,10 @@ class PhotoAdapterKt(
     private val TYPE_PICTURE = 0
     private val TYPE_AD = 1
 
-    // Строка — либо индекс картинки в items (Int), либо NativeAd
+    // Строка — либо картинка, либо NativeAd. Картинку храним саму, а не только её номер:
+    // общий список могут очистить (обновление, смена вкладки) раньше, чем сетка об этом узнает
+    private class PictureRow(val index: Int, val picture: PictureKt)
+
     private val rows = ArrayList<Any>()
 
     class PictureHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -41,7 +44,7 @@ class PhotoAdapterKt(
             if (i > 0 && i % adDelta == 0 && ads.isNotEmpty() && AdsKt.isEnabled()) {
                 rows.add(ads[(i / adDelta - 1) % ads.size])
             }
-            rows.add(i)
+            rows.add(PictureRow(i, items[i]))
         }
         notifyDataSetChanged()
     }
@@ -74,15 +77,17 @@ class PhotoAdapterKt(
             return
         }
         holder as PictureHolder
-        val index = row as Int
-        val picture = items[index]
+        row as PictureRow
+        val index = row.index
+        val picture = row.picture
         val context = holder.itemView.context
 
         // Миниатюра очень лёгкая, показываем её, пока грузится сама картинка
         Glide.with(holder.picture).load(picture.url)
             .thumbnail(Glide.with(holder.picture).load(picture.urlSmall))
             .into(holder.picture)
-        holder.itemView.setOnClickListener { onClick(index) }
+        // Открываем просмотр, только если картинка всё ещё на своём месте в списке
+        holder.itemView.setOnClickListener { if (items.getOrNull(index) === picture) onClick(index) }
 
         holder.favorite.setImageResource(favoriteIcon(FavoritesKt.isFavorite(context, picture)))
         holder.favorite.setOnClickListener {

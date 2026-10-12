@@ -189,6 +189,13 @@ class MainActivityKt: AppCompatActivity() {
         binding.tabs.selectTab(binding.tabs.getTabAt(tab))
     }
 
+    fun openWallpaperCrop(url: String, target: Int) {
+        supportFragmentManager.beginTransaction()
+            .add(R.id.overlay, WallpaperCropKt.newInstance(url, target))
+            .addToBackStack(null)
+            .commit()
+    }
+
     fun openCardEditor(picture: PictureKt) {
         supportFragmentManager.beginTransaction()
             .add(R.id.overlay, CardEditorKt.newInstance(picture))
@@ -230,7 +237,7 @@ class MainActivityKt: AppCompatActivity() {
     }
 
     private fun showCategory(type: String) {
-        ManagerKt.getInstance()?.paginationList?.clear()
+        ManagerKt.getInstance()?.clearItems()
         supportFragmentManager.beginTransaction()
             .replace(R.id.content, ContentFragmentKt.newInstance(type))
             .commit()

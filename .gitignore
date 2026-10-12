@@ -15,3 +15,8 @@
 # Пробные картинки бота контента
 content_bot/out/
 __pycache__/
+
+# Ключ подписи и пароли к нему никогда не кладём в репозиторий
+keystore.properties
+*.jks
+*.keystore

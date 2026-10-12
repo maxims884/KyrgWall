@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Firestore заполняет PictureKt по именам полей (url, urlSmall, type, tags...).
+# Если R8 переименует их, картинки перестанут загружаться
+-keep class kg.black13.kyrgyzstanwallpaper.PictureKt { *; }
+
+# Понятные номера строк в отчётах о сбоях в Play Console
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

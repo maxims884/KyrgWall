@@ -72,7 +72,7 @@ class ContentFragmentKt : Fragment() {
                 manager.pullToRefresh!!.isRefreshing = false
                 return@OnRefreshListener
             }
-            manager.paginationList.clear()
+            manager.clearItems()
             manager.loadFirstItems(contentType)
         })
 
