@@ -16,19 +16,19 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.nativead.NativeAd
 
 object AdsKt {
-    // Межстраничная после каждого 3-го действия с картинкой (установка, сохранение, отправка)
+    // Межстраничная — только после завершённого действия с картинкой (установка, сохранение,
+    // отправка): каждое 3-е действие и не чаще раза в 3 минуты. При открытии картинки её больше
+    // не показываем: она появлялась под пальцем пользователя, и AdMob считал такие клики недействительными
     private const val ACTIONS_PER_AD = 3
-    // ...и на каждое 6-е открытие картинки, но не чаще раза в минуту
-    private const val OPENS_PER_AD = 6
-    private const val MIN_INTERVAL_MS = 60_000L
+    private const val MIN_INTERVAL_MS = 3 * 60_000L
     private const val NATIVE_ADS = 3
 
     val nativeAds = ArrayList<NativeAd>()
     private var bannerView: AdView? = null
     private var interstitialAd: InterstitialAd? = null
     private var actionCount = 0
-    private var openCount = 0
-    private var lastShown = 0L
+    // Отсчёт с запуска приложения: в первые минуты межстраничной рекламы нет
+    private var lastShown = SystemClock.elapsedRealtime()
 
     fun isEnabled(): Boolean {
         return ManagerKt.getInstance()?.getPrefRemoveAd() == 0
@@ -82,13 +82,10 @@ object AdsKt {
     /** Вызывать после действия с картинкой. onDone выполнится сразу или после закрытия рекламы */
     fun afterAction(activity: Activity, onDone: () -> Unit = {}) {
         actionCount++
-        if (actionCount % ACTIONS_PER_AD == 0) show(activity, onDone) else onDone()
-    }
-
-    fun onPictureOpened(activity: Activity) {
-        openCount++
-        if (openCount % OPENS_PER_AD == 0 && SystemClock.elapsedRealtime() - lastShown > MIN_INTERVAL_MS) {
-            show(activity) {}
+        if (actionCount % ACTIONS_PER_AD == 0 && SystemClock.elapsedRealtime() - lastShown > MIN_INTERVAL_MS) {
+            show(activity, onDone)
+        } else {
+            onDone()
         }
     }
 

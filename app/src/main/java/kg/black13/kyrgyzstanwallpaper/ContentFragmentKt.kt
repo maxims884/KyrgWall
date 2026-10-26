@@ -14,8 +14,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 class ContentFragmentKt : Fragment() {
     companion object {
         private const val ARG_TYPE = "type"
-        // Сколько рядов картинок между рекламными блоками
-        private const val ROWS_BETWEEN_ADS = 4
+        // Сколько рядов картинок между рекламными блоками: реже, чем было, чтобы реклама не попадалась под палец
+        private const val ROWS_BETWEEN_ADS = 6
 
         fun newInstance(type: String): ContentFragmentKt {
             val fragment = ContentFragmentKt()

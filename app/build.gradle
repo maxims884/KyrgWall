@@ -34,8 +34,8 @@ android {
         applicationId "kg.black13.kyrgyzstanwallpaper"
         minSdkVersion 23
         targetSdkVersion 36
-        versionCode 8
-        versionName "6.2"
+        versionCode 9
+        versionName "6.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

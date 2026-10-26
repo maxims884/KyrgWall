@@ -4,14 +4,20 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <!-- Реклама заметно отличается от картинок: своя подложка с рамкой и отступы сверху и снизу,
+         чтобы её нельзя было нажать вместо соседней картинки -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="6dp"
-        app:cardBackgroundColor="@color/colorSurface"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="6dp"
+        android:layout_marginTop="18dp"
+        android:layout_marginBottom="18dp"
+        app:cardBackgroundColor="@color/colorSurfaceHigh"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
-        app:strokeWidth="0dp">
+        app:strokeColor="@color/colorOutline"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"

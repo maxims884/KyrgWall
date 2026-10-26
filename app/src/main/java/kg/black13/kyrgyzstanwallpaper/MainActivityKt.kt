@@ -249,7 +249,6 @@ class MainActivityKt: AppCompatActivity() {
             .add(R.id.overlay, GalleryKt())
             .addToBackStack(null)
             .commit()
-        AdsKt.onPictureOpened(this)
     }
 
     private fun openSettings() {
